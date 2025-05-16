@@ -1,0 +1,7 @@
+#! /bin/sh
+
+name=base
+skip_pkg_check=yes
+version=0git
+revision=1
+deps="base-files nomos"

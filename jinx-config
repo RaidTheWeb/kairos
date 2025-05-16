@@ -1,0 +1,8 @@
+#! /bin/sh
+
+JINX_MAJOR_VER=0.5
+if [ -z "$ARCHITECTURE" ]; then
+    ARCHITECTURE=x86_64
+fi
+
+JINX_ARCH=${ARCHITECTURE}
