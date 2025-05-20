@@ -9,9 +9,10 @@ revision=1
 source_dir="nomos" # Built from an actual directory, as opposed to a source recipe
 imagedeps="build-essential"
 allow_network="yes" # Network access needs to be allowed
+source_allow_network="yes" # Required for prepare() stage curl.
 
 prepare() {
-    true
+    curl -Lo src/include/limine.h https://raw.githubusercontent.com/limine-bootloader/limine/refs/heads/v9.x/limine.h
 }
 
 configure() {
