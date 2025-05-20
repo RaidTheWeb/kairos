@@ -1,16 +1,16 @@
 # Jinx
-builds
-host-builds
-host-pkgs
-sources
-pkgs
-.jinx-cache
+/builds
+/host-builds
+/host-pkgs
+/sources
+/pkgs
+/.jinx-cache
 
 # Nomos
-nomos
+/nomos
 
 # Distrib
-sysroot
-isodir
-kairos.iso
-kairos.img
+/sysroot
+/isodir
+/kairos.iso
+/kairos.img

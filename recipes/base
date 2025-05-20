@@ -1,7 +1,10 @@
 #! /bin/sh
 
+# Entry recipe, the idea here is that this recipe will depend on all the other recipes required to make a basic "distribution".
+# Further recipes are built separately.
+
 name=base
 skip_pkg_check=yes
 version=0git
 revision=1
-deps="base-files nomos"
+deps="base-files nomos" # Dependencies that the recipe requires before being built (build dependencies)

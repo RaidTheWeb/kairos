@@ -1,0 +1,33 @@
+#! /bin/sh
+
+# Limine host build recipe. Is built for the host system, for installing into the ISO distribution in build scripts.
+
+name=limine
+from_source=limine # Built from this source, this'll be drawn either from `source-recipes` or from the sources of a normal `recipes` recipe.
+revision=1
+hostdeps="" # Requires gcc and pkg-config to be built on the host beforehand.
+imagedeps="nasm build-essential mtools" # These packages need to be installed by the build container's package manager before it's built.
+
+configure() {
+    echo "configure() ?"
+    if [ "$ARCHITECTURE" = "x86_64" ]; then
+        X86_FLAGS="--enable-bios --enable-bios-cd --enable-bios-pxe --enable-uefi-ia32"
+    fi
+
+    CFLAGS="$HOST_CFLAGS" \
+    CXXFLAGS="$HOST_CXXFLAGS" \
+    LDFLAGS="$HOST_LDFLAGS -static" \
+    "${source_dir}"/configure \
+    "--prefix=${prefix}" \
+    $X86_FLAGS \
+    --enable-uefi-$ARCHITECTURE \
+    --enable-uefi-cd
+}
+
+build() {
+    make -j${parallelism}
+}
+
+package() {
+    DESTDIR="${dest_dir}" make install
+}

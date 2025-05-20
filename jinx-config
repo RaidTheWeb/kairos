@@ -1,8 +1,32 @@
 #! /bin/sh
 
+# Jinx config file. Contains globals and helper functions for jinx recipes.
+
 JINX_MAJOR_VER=0.5
+
 if [ -z "$ARCHITECTURE" ]; then
     ARCHITECTURE=x86_64
 fi
 
 JINX_ARCH=${ARCHITECTURE}
+
+# Flags for host recipes.
+HOST_CFLAGS="-O2 -pipe -fstack-clash-protection"
+HOST_CXXFLAGS="${HOST_CFLAGS} -Wp,-D_GLIBCXX_ASSERTIONS" # WE WANT ASSERTIONS!!!!
+HOST_LDFLAGS="-Wl,-O1 -Wl,--sort-common -Wl,--as-needed -Wl,-z,relro -Wl,-z,now"
+
+# Flags for recipes to be built for the distribution.
+TARGET_CFLAGS="$HOST_CFLAGS"
+TARGET_CXXFLAGS="$HOST_CXXFLAGS"
+TARGET_LDFLAGS="$HOST_LDFLAGS"
+
+# Target triplet for stuff like gcc. eg. x86_64-kairos-gcc
+OS_TRIPLET=$ARCHITECTURE-kairos
+
+if [ "$ARCHITECTURE" == x86_64 ]; then
+    GENERIC_ARCHFLAGS="-march=x86_64 -mtune=generic -fcf-protection -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer"
+
+    TARGET_CFLAGS="$TARGET_CFLAGS $GENERIC_ARCHFLAGS"
+    TARGET_CXXFLAGS="$TARGET_CXXFLAGS $GENERIC_ARCHFLAGS"
+    TARGET_LDFLAGS="$TARGET_LDFLAGS -Wl,-z,pack-relative-relocs"
+fi

@@ -1,0 +1,28 @@
+#! /bin/sh
+
+# Kernel recipe.
+
+name=nomos
+skip_pkg_check=yes
+version=0git
+revision=1
+source_dir="nomos" # Built from an actual directory, as opposed to a source recipe
+imagedeps="build-essential"
+allow_network="yes" # Network access needs to be allowed
+
+prepare() {
+    true
+}
+
+configure() {
+    true
+}
+
+build() {
+    WORK_DIR="$(pwd)" make -C ${source_dir} -j${parallelism}
+}
+
+package() {
+    DEST_DIR="${dest_dir}/" PREFIX="usr/" make -C ${source_dir} install
+}
+

@@ -1,0 +1,7 @@
+#! /bin/sh
+
+name=limine
+version=9.3.2
+revision=1
+tarball_url="https://github.com/limine-bootloader/limine/releases/download/v${version}/limine-${version}.tar.gz"
+tarball_blake2b="1017eb95c1827d36e8208cb7e745ef0784cbd19fcc1e0d2b841e72bfd88a766d19a7f4d23c7c202663759d381c9f2dbfcfddc5a66d8cfeadb4bd5416d7e7955a"
