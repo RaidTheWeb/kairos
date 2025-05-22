@@ -1,0 +1,20 @@
+set disassembly-flavor intel
+layout asm
+layout regs
+
+define hook-stop
+    info registers
+    x/10i $pc
+end
+
+set print pretty on
+set confirm off
+set pagination off
+
+define reset
+    hbreak kernel_main
+    continue
+end
+
+hbreak kernel_main
+continue

@@ -12,6 +12,6 @@ if ! [ -z "$KVM" ]; then
     qemu_flags="${INT_FLAGS} -enable-kvm -cpu host -smp 4"
 fi
 
-kitty -e gdb sysroot/usr/share/nomos/nomos -ex 'target remote :1234' &
+kitty -e gdb sysroot/usr/share/nomos/nomos -ex 'target remote :1234' -x 'build-support/gdbinit' &
 
-qemu-system-${ARCH} ${INT_FLAGS} -drive file=kairos.iso -serial stdio -s -S
+qemu-system-${ARCH} ${qemu_flags} -drive file=kairos.iso -s -S
