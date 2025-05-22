@@ -3,7 +3,7 @@
 # Remove old sysroot
 rm -rf "sysroot"
 
-./jinx build-if-needed base # Create jinx packages.
+./jinx build base # Create jinx packages.
 ./jinx install "sysroot" base # Install jinx packages to the sysroot folder (to be later put into ISO)
 
 ./jinx host-build limine
