@@ -6,12 +6,19 @@ fi
 
 INT_FLAGS="-m 2G"
 INT_FLAGS=${INT_FLAGS} ${QEMU_FLAGS}
+qemu_flags=${INT_FLAGS}
 
 if ! [ -z "$KVM" ]; then
     echo "Running with KVM..."
-    qemu_flags="${INT_FLAGS} -enable-kvm -cpu host -smp 4"
+    qemu_flags="${qemu_flags} ${INT_FLAGS} -enable-kvm -cpu host -smp 4"
 fi
 
-kitty -e gdb sysroot/usr/share/nomos/nomos -ex 'target remote :1234' -x 'build-support/gdbinit' &
+if ! [ -z "$DEBUG" ]; then
+    echo "Debugging..."
+    qemu_flags="${qemu_flags} -s -S"
 
-qemu-system-${ARCH} ${qemu_flags} -drive file=kairos.iso -s -S
+    kitty -e gdb sysroot/usr/share/nomos/nomos -ex 'target remote :1234' -x 'build-support/gdbinit' &
+fi
+
+
+qemu-system-${ARCH} ${qemu_flags} -drive file=kairos.iso -serial stdio

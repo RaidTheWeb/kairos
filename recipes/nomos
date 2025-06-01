@@ -8,6 +8,7 @@ version=0git
 revision=1
 source_dir="nomos" # Built from an actual directory, as opposed to a source recipe
 imagedeps="build-essential nasm"
+hostdeps="limine"
 allow_network="yes" # Network access needs to be allowed
 source_allow_network="yes" # Required for prepare() stage curl.
 
@@ -16,6 +17,9 @@ prepare() {
     rm -rf flanterm/
     git clone https://codeberg.org/mintsuki/flanterm
     cd flanterm && git checkout bdecdcb1b7 && cd -
+    rm -rf uACPI/
+    git clone https://github.com/uACPI/uACPI
+    cd uACPI && git checkout 229faec && cd -
 }
 
 configure() {
@@ -23,10 +27,10 @@ configure() {
 }
 
 build() {
-    WORK_DIR="$(pwd)" make -C ${source_dir} -j${parallelism}
+    DEBUG=1 WORK_DIR="$(pwd)" make -C ${source_dir} -j${parallelism}
 }
 
 package() {
-    DEST_DIR="${dest_dir}/" PREFIX="usr/" make -C ${source_dir} install
+    DEBUG=1 WORK_DIR="$(pwd)" DEST_DIR="${dest_dir}/" PREFIX="usr/" make -C ${source_dir} install
 }
 
