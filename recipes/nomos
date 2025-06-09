@@ -19,7 +19,7 @@ prepare() {
     cd flanterm && git checkout bdecdcb1b7 && cd -
     rm -rf uACPI/
     git clone https://github.com/uACPI/uACPI
-    cd uACPI && git checkout 229faec && cd -
+    cd uACPI && git checkout tags/2.1.1 && cd -
 }
 
 configure() {
