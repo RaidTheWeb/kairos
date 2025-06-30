@@ -1,6 +1,6 @@
 set disassembly-flavor intel
-layout asm
-layout regs
+# layout asm
+# layout regs
 
 define hook-stop
     info registers

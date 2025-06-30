@@ -28,6 +28,11 @@ cp host-pkgs/limine/usr/local/share/limine/BOOT*.EFI isodir/EFI/BOOT
 
 cp build-support/limine.conf isodir/boot/limine/limine.conf
 
+# Create initramfs tar, and copy it to ISO.
+rm -rf initramfs.tar
+cd "sysroot" && tar --format=ustar -cf initramfs.tar * && mv initramfs.tar .. && cd ..
+cp initramfs.tar isodir/initramfs.tar
+
 xorriso -as mkisofs -R -r -J -b boot/limine/limine-bios-cd.bin -no-emul-boot -boot-load-size 4 \
     -boot-info-table -hfsplus -apm-block-size 2048 --efi-boot boot/limine/limine-uefi-cd.bin \
     -efi-boot-part --efi-boot-image --protective-msdos-label "isodir" -o kairos.iso
