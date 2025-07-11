@@ -1,0 +1,31 @@
+#! /bin/sh
+
+name=mlibc
+skip_pkg_check=yes
+version=0.0git
+revision=1
+git_url="https://github.com/managarm/mlibc.git"
+commit=dee33115c03f2d80023651881e3814cb2d495c8d
+hostdeps="gcc pkg-config libgcc-binaries"
+builddeps="freestnd-c-hdrs freestnd-cxx-hdrs frigg"
+deps="mlibc-headers"
+
+configure() {
+    CFLAGS="$TARGET_CFLAGS" \
+    CXXFLAGS="$TARGET_CXXFLAGS" \
+    LDFLAGS="$TARGET_LDFLAGS -Wl,/usr/local/libgcc-binaries/libgcc-$ARCHITECTURE.a" \
+    meson_configure_noflags \
+        --buildtype=debug \
+        -Dno_headers=true \
+        -Ddefault_library=both \
+        -Dlibgcc_dependency=false \
+        -Duse_freestnd_hdrs=enabled
+}
+
+build() {
+    meson compile -j${parallelism}
+}
+
+package() {
+    DESTDIR="${dest_dir}" meson install --no-rebuild
+}

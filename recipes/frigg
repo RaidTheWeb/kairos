@@ -1,0 +1,23 @@
+#! /bin/sh
+
+name=frigg
+skip_pkg_check=yes
+version=0.0git
+revision=1
+git_url="https://github.com/managarm/frigg.git"
+commit=d4d587ccc92cf00abf8b0af5c7469b099a26a0a8
+hostdeps="pkg-config"
+
+configure() {
+    meson_configure \
+    --includedir=share/frigg/include \
+    -Dbuild_tests=disabled
+}
+
+build() {
+    meson compile -j${parallelism}
+}
+
+package() {
+    DESTDIR="${dest_dir}" meson install --no-rebuild
+}

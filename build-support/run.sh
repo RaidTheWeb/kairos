@@ -21,4 +21,4 @@ if ! [ -z "$DEBUG" ]; then
 fi
 
 
-qemu-system-${ARCH} -M q35 ${qemu_flags} -drive file=kairos.iso -serial stdio
+qemu-system-${ARCH} -M q35 ${qemu_flags} -drive file=kairos.iso -d int -no-reboot -serial stdio

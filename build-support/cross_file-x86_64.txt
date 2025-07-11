@@ -1,0 +1,13 @@
+[binaries]
+c = 'x86_64-nomos-mlibc-gcc'
+cpp = 'x86_64-nomos-mlibc-g++'
+ar = 'x86_64-nomos-mlibc-ar'
+nm = 'x86_64-nomos-mlibc-nm'
+strip = 'x86_64-nomos-mlibc-strip'
+pkg-config = 'x86_64-nomos-mlibc-pkg-config'
+
+[host_machine]
+system = 'nomos'
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'

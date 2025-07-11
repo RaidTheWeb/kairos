@@ -5,7 +5,7 @@
 name=limine
 from_source=limine # Built from this source, this'll be drawn either from `source-recipes` or from the sources of a normal `recipes` recipe.
 revision=1
-hostdeps="" # Requires gcc and pkg-config to be built on the host beforehand.
+hostdeps="gcc pkg-config" # Requires gcc and pkg-config to be built on the host beforehand.
 imagedeps="nasm build-essential mtools" # These packages need to be installed by the build container's package manager before it's built.
 
 configure() {
@@ -19,6 +19,7 @@ configure() {
     LDFLAGS="$HOST_LDFLAGS -static" \
     "${source_dir}"/configure \
     "--prefix=${prefix}" \
+    TOOLCHAIN_FOR_TARGET=${OS_TRIPLET} \
     $X86_FLAGS \
     --enable-uefi-$ARCHITECTURE \
     --enable-uefi-cd
