@@ -28,8 +28,6 @@ cp host-pkgs/limine/usr/local/share/limine/BOOT*.EFI isodir/EFI/BOOT
 
 cp build-support/limine.conf isodir/boot/limine/limine.conf
 
-ln -s /usr/share/nomos/nomos sysroot/nomos
-
 # Create initramfs tar, and copy it to ISO.
 rm -rf initramfs.tar
 cd "sysroot" && tar --format=ustar -cf initramfs.tar * && mv initramfs.tar .. && cd ..
