@@ -18,7 +18,7 @@ configure() {
 build() {
     cp -rp "${source_dir}"/. ./
 
-    x86_64-nomos-mlibc-gcc -g -static test.c -o test
+    x86_64-nomos-mlibc-gcc -g -mavx -mavx2 -static test.c -o test
 }
 
 package() {

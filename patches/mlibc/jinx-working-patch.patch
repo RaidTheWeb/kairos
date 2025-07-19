@@ -69,9 +69,11 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/generic/entry.cpp 
 +}
 diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cpp mlibc-nomos/sysdeps/nomos/generic/generic.cpp
 --- mlibc/sysdeps/nomos/generic/generic.cpp	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/generic/generic.cpp	2025-07-13 03:11:30.997915445 +1200
-@@ -0,0 +1,138 @@
++++ mlibc-nomos/sysdeps/nomos/generic/generic.cpp	2025-07-18 17:25:05.924800067 +1200
+@@ -0,0 +1,221 @@
++#include <asm/ioctls.h>
 +#include <bits/ensure.h>
++#include <errno.h>
 +#include <dirent.h>
 +#include <fcntl.h>
 +#include <limits.h>
@@ -183,12 +185,93 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cp
 +        return 0; // Assume success.
 +    }
 +
++    int sys_dup(int fd, int flags, int *newfd) {
++        ssize_t ret = syscall(SYSCALL_DUP, fd, flags);
++
++        if (ret < 0) {
++            return -ret;
++        }
++
++        *newfd = ret;
++        return 0;
++    }
++
++    int sys_dup2(int fd, int flags, int newfd) {
++        ssize_t ret = syscall(SYSCALL_DUP2, fd, flags, newfd);
++        if (ret < 0) {
++            return -ret;
++        }
++
++        return 0;
++    }
++
 +    int sys_close(int fd) {
 +        return syscall(SYSCALL_CLOSE, fd);
 +    }
 +
-+    int sys_isatty(int fd) {
++    int sys_ioctl(int fd, unsigned long request, void *arg, int *result) {
++        ssize_t ret = syscall(SYSCALL_IOCTL, fd, request, (uint64_t)arg);
++        if (ret < 0) {
++            return -ret;
++        }
++
++        if (result) {
++            *result = ret;
++        }
 +        return 0;
++    }
++
++    int sys_tcgetattr(int fd, struct termios *attr) {
++        int ret;
++
++        if (int e = sys_ioctl(fd, TCGETS, (void *)attr, &ret); e) {
++            return e;
++        }
++
++        return 0;
++    }
++
++    int sys_tcsetattr(int fd, int optional, const struct termios *attr) {
++        int req;
++
++        switch (optional) {
++            case TCSANOW:
++                req = TCSETS;
++                break;
++            case TCSADRAIN:
++                req = TCSETSW;
++                break;
++            case TCSAFLUSH:
++                req = TCSETSF;
++                break;
++        }
++
++        if (int e = sys_ioctl(fd, req, (void *)attr, NULL); e) {
++            return e;
++        }
++
++        return 0;
++    }
++
++    int sys_tcflush(int fd, int action) {
++        return sys_ioctl(fd, TCFLSH, &action, NULL);
++    }
++
++    int sys_tcdrain(int fd) {
++        return sys_ioctl(fd, TCSBRK, (void *)1, NULL);
++    }
++
++    int sys_tcflow(int fd, int action) {
++        return sys_ioctl(fd, TCXONC, &action, NULL);
++    }
++
++    int sys_isatty(int fd) {
++        unsigned short ws[4];
++        int result;
++        if (!sys_ioctl(fd, 0x5413, &ws, &result)) {
++            return 0;
++        }
++        return ENOTTY;
 +    }
 +
 +    int sys_openat(int dirfd, const char *path, int flags, mode_t mode, int *fd) {
@@ -3256,10 +3339,39 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/x
 +#endif
 +
 +#endif /* MLIBC_ABIS_LINUX_XATTR_H */
+diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/asm/ioctls.h mlibc-nomos/sysdeps/nomos/include/asm/ioctls.h
+--- mlibc/sysdeps/nomos/include/asm/ioctls.h	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/include/asm/ioctls.h	2025-07-18 11:00:16.615219928 +1200
+@@ -0,0 +1,25 @@
++#ifndef _ASM_IOCTLS_H
++#define _ASM_IOCTLS_H
++
++#define TCGETS          0x5401
++#define TCSETS          0x5402
++#define TCSETSW         0x5403
++#define TCSETSF         0x5404
++#define TCGETA          0x5405
++#define TCSETA          0x5406
++#define TCSETAW         0x5407
++#define TCSETAF         0x5408
++#define TCSBRK          0x5409
++#define TCXONC          0x540a
++#define TCFLSH          0x540b
++#define TIOCEXCL        0x540c
++#define TIOCNXCL        0x540d
++#define TIOCSCTTY       0x540e
++#define TIOCGPGRP       0x540f
++#define TIOCSPGRP       0x5410
++#define TIOCOUTQ        0x5411
++#define TIOCSTI         0x5412
++#define TIOCGWINSZ      0x5413
++#define TIOCSWINSZ      0x5414
++
++#endif
 diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/nomos/syscall.h mlibc-nomos/sysdeps/nomos/include/nomos/syscall.h
 --- mlibc/sysdeps/nomos/include/nomos/syscall.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/nomos/syscall.h	2025-07-10 22:38:13.731944065 +1200
-@@ -0,0 +1,39 @@
++++ mlibc-nomos/sysdeps/nomos/include/nomos/syscall.h	2025-07-18 16:35:05.661898101 +1200
+@@ -0,0 +1,42 @@
 +#ifndef _NOMOS__SYSCALL_H_
 +#define _NOMOS__SYSCALL_H_
 +
@@ -3277,6 +3389,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/nomos/sysc
 +#define SYSCALL_READ        8
 +#define SYSCALL_WRITE       9
 +#define SYSCALL_SEEK        10
++#define SYSCALL_IOCTL       11
++#define SYSCALL_DUP         12
++#define SYSCALL_DUP2        13
 +
 +#ifndef __MLIBC_ABI_ONLY
 +
@@ -3301,8 +3416,8 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/nomos/sysc
 +#endif
 diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/meson.build mlibc-nomos/sysdeps/nomos/meson.build
 --- mlibc/sysdeps/nomos/meson.build	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/meson.build	2025-07-07 23:56:12.875666079 +1200
-@@ -0,0 +1,102 @@
++++ mlibc-nomos/sysdeps/nomos/meson.build	2025-07-13 23:46:00.688142610 +1200
+@@ -0,0 +1,106 @@
 +sysdep_supported_options = {
 +  'posix': true,
 +  'linux': false,
@@ -3374,6 +3489,10 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/meson.build mlibc-
 +    'include/abi-bits/sigevent.h',
 +    subdir: 'abi-bits',
 +    follow_symlinks: true
++  )
++  install_headers(
++    'include/asm/ioctls.h',
++    subdir: 'asm'
 +  )
 +endif
 +
