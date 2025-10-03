@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 int main(int argc, char **argv) {
-    printf("Hello!!!!\n");
+    printf("Hello!!!! from PID=%d\n", getpid());
 
     uint32_t eax, ebx, ecx, edx;
     asm volatile(
@@ -17,10 +17,10 @@ int main(int argc, char **argv) {
         : "c"(0)
     );
     if ((eax & 6) != 6) {
-        printf("CPU doesn't support AVX.\n");
+        printf("OS doesn't support AVX.\n");
         return 1;
     } else {
-        printf("CPU supports AVX.\n");
+        printf("OS supports AVX.\n");
     }
 
 
@@ -58,8 +58,29 @@ int main(int argc, char **argv) {
             printf("Failed!.\n");
             return 1;
         }
+        printf("%f + %f = %f.\n", a[i], b[i], result[i]);
     }
     printf("AVX test passed!.\n");
 
-    return 0;
+    if (fork() == 0) {
+        for (size_t i = 0; i < 10; i++) {
+            printf("About to fork %lu.\n", i);
+            if (fork() == 0) {
+                printf("Grandchild.\n");
+                while (1) {
+                    ;
+                }
+            }
+            printf("NO.\n");
+        }
+        printf("Child.\n");
+        // return 2;
+        while (1) {
+            ;
+        }
+    }
+    printf("Parent.\n");
+    while (1) {
+        ;
+    }
 }

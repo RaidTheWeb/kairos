@@ -69,8 +69,8 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/generic/entry.cpp 
 +}
 diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cpp mlibc-nomos/sysdeps/nomos/generic/generic.cpp
 --- mlibc/sysdeps/nomos/generic/generic.cpp	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/generic/generic.cpp	2025-07-18 17:25:05.924800067 +1200
-@@ -0,0 +1,221 @@
++++ mlibc-nomos/sysdeps/nomos/generic/generic.cpp	2025-07-29 16:54:41.021710500 +1200
+@@ -0,0 +1,283 @@
 +#include <asm/ioctls.h>
 +#include <bits/ensure.h>
 +#include <errno.h>
@@ -121,7 +121,57 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cp
 +    int sys_futex_wake(int *ptr) STUB
 +
 +    int sys_futex_tid(void) {
-+        return 1;
++        return syscall(SYSCALL_GETTID);
++    }
++
++    pid_t sys_getpid(void) {
++        return syscall(SYSCALL_GETPID);
++    }
++
++    pid_t sys_getppid(void) {
++        return syscall(SYSCALL_GETPPID);
++    }
++
++    pid_t sys_gettid(void) {
++        return syscall(SYSCALL_GETTID);
++    }
++
++    int sys_fork(pid_t *child) {
++        ssize_t ret = syscall(SYSCALL_FORK);
++
++        if (ret < 0) {
++            return -ret;
++        }
++
++        *child = ret;
++        return 0;
++    }
++
++    int sys_setsid(pid_t *sid) {
++        ssize_t ret = syscall(SYSCALL_SETSID);
++        if (ret < 0) {
++            return -ret;
++        }
++        *sid = ret;
++        return 0;
++    }
++
++    pid_t sys_getpgid(pid_t pid, pid_t *pgid) {
++        ssize_t ret = syscall(SYSCALL_GETPGID, pid);
++        if (ret < 0) {
++            return -ret;
++        }
++
++        *pgid = (pid_t)ret;
++        return 0;
++    }
++
++    int sys_setpgid(pid_t pid, pid_t pgid) {
++        ssize_t ret = syscall(SYSCALL_SETPGID, pid, pgid);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
 +    }
 +
 +    int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd, off_t offset, void **window) {
@@ -136,11 +186,23 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cp
 +    }
 +
 +    int sys_vm_protect(void *ptr, size_t size, int prot) {
-+        return syscall(SYSCALL_MPROTECT, (uint64_t)ptr, size, prot);
++        ssize_t ret = syscall(SYSCALL_MPROTECT, (uint64_t)ptr, size, prot);
++
++        if (ret < 0) {
++            return -ret;
++        }
++
++        return 0;
 +    }
 +
 +    int sys_vm_unmap(void *ptr, size_t size) {
-+        return syscall(SYSCALL_MUNMAP, (uint64_t)ptr, size);
++        ssize_t ret = syscall(SYSCALL_MUNMAP, (uint64_t)ptr, size);
++
++        if (ret < 0) {
++            return -ret;
++        }
++
++        return 0;
 +    }
 +
 +    int sys_anon_allocate(size_t size, void **ptr) {
@@ -3370,8 +3432,8 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/asm/ioctls
 +#endif
 diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/nomos/syscall.h mlibc-nomos/sysdeps/nomos/include/nomos/syscall.h
 --- mlibc/sysdeps/nomos/include/nomos/syscall.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/nomos/syscall.h	2025-07-18 16:35:05.661898101 +1200
-@@ -0,0 +1,42 @@
++++ mlibc-nomos/sysdeps/nomos/include/nomos/syscall.h	2025-07-29 16:51:40.034431909 +1200
+@@ -0,0 +1,49 @@
 +#ifndef _NOMOS__SYSCALL_H_
 +#define _NOMOS__SYSCALL_H_
 +
@@ -3392,6 +3454,13 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/nomos/sysc
 +#define SYSCALL_IOCTL       11
 +#define SYSCALL_DUP         12
 +#define SYSCALL_DUP2        13
++#define SYSCALL_GETTID      14
++#define SYSCALL_GETPID      15
++#define SYSCALL_GETPPID     16
++#define SYSCALL_GETPGID     17
++#define SYSCALL_SETPGID     18
++#define SYSCALL_SETSID      19
++#define SYSCALL_FORK        20
 +
 +#ifndef __MLIBC_ABI_ONLY
 +

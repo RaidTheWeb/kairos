@@ -21,4 +21,4 @@ if ! [ -z "$DEBUG" ]; then
 fi
 
 
-qemu-system-${ARCH} -M q35 ${qemu_flags} -drive file=kairos.iso -d int -no-reboot -serial stdio
+qemu-system-${ARCH} -M q35 -cpu max ${qemu_flags} -drive file=kairos.iso -drive file=nvm.img,if=none,id=nvm -device nvme,serial=deadbeef,drive=nvm -trace "pci_nvme_*" -no-reboot -debugcon stdio
