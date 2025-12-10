@@ -10,7 +10,7 @@ imagedeps="nasm build-essential mtools" # These packages need to be installed by
 
 configure() {
     echo "configure() ?"
-    if [ "$ARCHITECTURE" = "x86_64" ]; then
+    if [ "$JINX_ARCH" = "x86_64" ]; then
         X86_FLAGS="--enable-bios --enable-bios-cd --enable-bios-pxe --enable-uefi-ia32"
     fi
 
@@ -21,7 +21,7 @@ configure() {
     "--prefix=${prefix}" \
     TOOLCHAIN_FOR_TARGET=${OS_TRIPLET} \
     $X86_FLAGS \
-    --enable-uefi-$ARCHITECTURE \
+    --enable-uefi-$JINX_ARCH \
     --enable-uefi-cd
 }
 

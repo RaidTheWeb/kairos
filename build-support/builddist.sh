@@ -3,10 +3,10 @@
 # Remove old sysroot
 rm -rf "sysroot"
 
-./jinx build base # Create jinx packages.
-./jinx install "sysroot" base # Install jinx packages to the sysroot folder (to be later put into ISO)
+../jinx update base # Create jinx packages.
+../jinx install "sysroot" base # Install jinx packages to the sysroot folder (to be later put into ISO)
 
-./jinx host-build limine
+../jinx host-build limine
 
 rm -rf isodir # Remove old ISO building directory.
 mkdir isodir
@@ -26,11 +26,11 @@ cp host-pkgs/limine/usr/local/share/limine/limine-bios-cd.bin isodir/boot/limine
 cp host-pkgs/limine/usr/local/share/limine/limine-uefi-cd.bin isodir/boot/limine
 cp host-pkgs/limine/usr/local/share/limine/BOOT*.EFI isodir/EFI/BOOT
 
-cp build-support/limine.conf isodir/boot/limine/limine.conf
+cp ../build-support/limine.conf isodir/boot/limine/limine.conf
 
 # Create initramfs tar, and copy it to ISO.
 rm -rf initramfs.tar
-cd "sysroot" && tar --format=ustar -cf initramfs.tar * && mv initramfs.tar .. && cd ..
+cd "sysroot" && tar -cf initramfs.tar * && mv initramfs.tar .. && cd ..
 cp initramfs.tar isodir/initramfs.tar
 
 xorriso -as mkisofs -R -r -J -b boot/limine/limine-bios-cd.bin -no-emul-boot -boot-load-size 4 \

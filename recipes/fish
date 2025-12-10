@@ -1,0 +1,31 @@
+#! /bin/sh
+
+name=fish
+version=3.0.2
+revision=1
+tarball_url="https://github.com/fish-shell/fish-shell/releases/download/${version}/fish-${version}.tar.gz"
+tarball_blake2b="fedc8bd5fd6d7856b695207ce9ac7a5a47f0e3c211d2aa2151a7a3c1bd944b3cf5c86ddf8b6e4c4d3499bb72d4ede64886706e05a44786d70c665b4ffb85369f"
+hostdeps="gcc pkg-config"
+imagedeps="automake"
+deps="mlibc libgcc ncurses libstdc++"
+allow_network="yes"
+
+prepare() {
+    autotools_recursive_regen
+}
+
+configure() {
+    cp -rp "${source_dir}"/. ./
+    ac_cv_file__proc_self_stat=no \
+    autotools_configure \
+        --without-gettext
+}
+
+build() {
+    make -j${parallelism}
+}
+
+package() {
+    DESTDIR="${dest_dir}" make install
+}
+

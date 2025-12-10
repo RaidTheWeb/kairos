@@ -1,0 +1,28 @@
+#! /bin/sh
+
+name=other
+skip_pkg_check=yes
+version=0git
+revision=1
+source_dir="other" # Built from an actual directory, as opposed to a source recipe
+imagedeps="build-essential nasm"
+deps="mlibc libgcc ncurses"
+hostdeps="gcc pkg-config binutils"
+allow_network="yes" # Network access needs to be allowed
+source_allow_network="yes" # Required for prepare() stage curl.
+
+configure() {
+    true
+}
+
+build() {
+    cp -rp "${source_dir}"/. ./
+
+    x86_64-nomos-mlibc-gcc -g -mavx -mavx2 -ltinfow -lncursesw other.c -o other
+}
+
+package() {
+    mkdir -p ${dest_dir}/bin
+    cp other ${dest_dir}/bin/other
+}
+

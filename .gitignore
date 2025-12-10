@@ -5,6 +5,7 @@
 /sources
 /pkgs
 /.jinx-cache
+/build-x86_64
 
 # Nomos
 /nomos

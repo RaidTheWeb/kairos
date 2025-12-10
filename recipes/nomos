@@ -12,8 +12,8 @@ hostdeps="limine"
 allow_network="yes" # Network access needs to be allowed
 source_allow_network="yes" # Required for prepare() stage curl.
 
-prepare() {
-    curl -Lo src/include/limine.h https://raw.githubusercontent.com/limine-bootloader/limine/refs/heads/v9.x/limine.h
+early_prepare() {
+    curl -Lo src/include/limine.h https://raw.githubusercontent.com/limine-bootloader/limine/3e6a9a4a8569ba24508b9f83d50caf2800521a5d/limine.h
     rm -rf flanterm/
     git clone https://codeberg.org/mintsuki/flanterm
     cd flanterm && git checkout bdecdcb1b7 && cd -

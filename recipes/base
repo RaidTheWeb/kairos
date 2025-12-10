@@ -7,4 +7,4 @@ name=base
 skip_pkg_check=yes
 version=0git
 revision=1
-deps="base-files nomos mlibc test" # Dependencies that the recipe requires before being built (build dependencies)
+deps="base-files nomos mlibc test fish other coreutils ncurses" # Dependencies that the recipe requires before being built (build dependencies)

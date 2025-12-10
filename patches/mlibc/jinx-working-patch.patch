@@ -1,34 +1,87 @@
-diff '--color=auto' -urN --no-dereference mlibc/meson.build mlibc-nomos/meson.build
---- mlibc/meson.build	2025-07-07 19:08:08.289312820 +1200
-+++ mlibc-nomos/meson.build	2025-07-07 19:22:50.319979825 +1200
-@@ -272,6 +272,10 @@
- 	rtld_include_dirs += include_directories('sysdeps/nyaux/include')
- 	libc_include_dirs += include_directories('sysdeps/nyaux/include')
- 	subdir('sysdeps/nyaux')
+diff -urN --no-dereference mlibc/meson.build mlibc-nomos/meson.build
+--- mlibc/meson.build	2025-12-08 14:36:43.148792477 +1300
++++ mlibc-nomos/meson.build	2025-12-08 14:39:45.624615816 +1300
+@@ -263,6 +263,10 @@
+ 	rtld_include_dirs += include_directories('sysdeps/menix/include')
+ 	libc_include_dirs += include_directories('sysdeps/menix/include')
+ 	subdir('sysdeps/menix')
 +elif host_machine.system() == 'nomos'
-+    rtld_include_dirs += include_directories('sysdeps/nomos/include')
-+    libc_include_dirs += include_directories('sysdeps/nomos/include')
-+    subdir('sysdeps/nomos')
- else
- 	error('No sysdeps defined for OS: ' + host_machine.system())
- endif
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/crt-x86_64/crt0.S mlibc-nomos/sysdeps/nomos/crt-x86_64/crt0.S
---- mlibc/sysdeps/nomos/crt-x86_64/crt0.S	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/crt-x86_64/crt0.S	2025-07-10 21:51:50.520597386 +1200
-@@ -0,0 +1,7 @@
++        rtld_include_dirs += include_directories('sysdeps/nomos/include')
++        libc_include_dirs += include_directories('sysdeps/nomos/include')
++        subdir('sysdeps/nomos')
+ # ANCHOR: demo-sysdeps
+ elif host_machine.system() == 'demo'
+ 	subdir('sysdeps/demo')
+diff -urN --no-dereference mlibc/options/ansi/generic/string.cpp mlibc-nomos/options/ansi/generic/string.cpp
+--- mlibc/options/ansi/generic/string.cpp	2025-12-08 14:36:43.150242944 +1300
++++ mlibc-nomos/options/ansi/generic/string.cpp	2025-12-09 02:45:54.468440282 +1300
+@@ -286,7 +286,17 @@
+ }
+ 
+ int wcscoll(const wchar_t *, const wchar_t *) { MLIBC_STUB_BODY; }
+-int wcsncmp(const wchar_t *, const wchar_t *, size_t) { MLIBC_STUB_BODY; }
++int wcsncmp(const wchar_t *l, const wchar_t *r, size_t n) {
++	for(size_t i = 0; i < n; i++) {
++		if(l[i] != r[i]) {
++			return l[i] - r[i];
++		}
++		if(l[i] == 0) {
++			return 0;
++		}
++	}
++	return 0;
++}
+ size_t wcsxfrm(wchar_t *__restrict, const wchar_t *__restrict, size_t) { MLIBC_STUB_BODY; }
+ 
+ int wmemcmp(const wchar_t *a, const wchar_t *b, size_t size) {
+diff -urN --no-dereference mlibc/options/posix/generic/wchar.cpp mlibc-nomos/options/posix/generic/wchar.cpp
+--- mlibc/options/posix/generic/wchar.cpp	2025-12-08 14:36:43.169243296 +1300
++++ mlibc-nomos/options/posix/generic/wchar.cpp	2025-12-09 17:45:09.461269467 +1300
+@@ -562,9 +562,19 @@
+ 	return 0;
+ }
+ 
+-int wcscasecmp(const wchar_t *, const wchar_t *) {
+-	__ensure(!"Not implemented");
+-	__builtin_unreachable();
++int wcscasecmp(const wchar_t *s1, const wchar_t *s2) {
++	size_t i = 0;
++	while(true) {
++		wint_t c1 = towlower(s1[i]);
++		wint_t c2 = towlower(s2[i]);
++		if(c1 == L'\0' && c2 == L'\0')
++			return 0;
++		if(c1 < c2)
++			return -1;
++		if(c1 > c2)
++			return 1;
++		i++;
++	}
+ }
+ 
+ size_t wcsnlen(const wchar_t *, size_t) {
+diff -urN --no-dereference mlibc/sysdeps/nomos/crt-x86_64/crt1.S mlibc-nomos/sysdeps/nomos/crt-x86_64/crt1.S
+--- mlibc/sysdeps/nomos/crt-x86_64/crt1.S	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/crt-x86_64/crt1.S	2025-12-08 15:12:35.122029109 +1300
+@@ -0,0 +1,10 @@
++
 +.section .text
 +.global _start
 +_start:
-+    mov %rsp, %rsi
-+    lea main(%rip), %rdi
-+    call __mlibc_entry
++	mov %rsp, %rdi
++	mov $main, %rsi
++	call __mlibc_entry
++
 +.section .note.GNU-stack,"",%progbits
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/crt-x86_64/crti.S mlibc-nomos/sysdeps/nomos/crt-x86_64/crti.S
++
+diff -urN --no-dereference mlibc/sysdeps/nomos/crt-x86_64/crti.S mlibc-nomos/sysdeps/nomos/crt-x86_64/crti.S
 --- mlibc/sysdeps/nomos/crt-x86_64/crti.S	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/crt-x86_64/crti.S	2025-07-07 23:40:29.334932496 +1200
-@@ -0,0 +1,10 @@
-+.section .init
-+.global _init
++++ mlibc-nomos/sysdeps/nomos/crt-x86_64/crti.S	2025-12-08 15:15:52.114787112 +1300
+@@ -0,0 +1,12 @@
++    .ident "x86_64-nomos-mlibc crti"
++    .section .init
++    .global _init
++    .type _init, @function
 +_init:
 +    push %rax
 +
@@ -37,10 +90,12 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/crt-x86_64/crti.S 
 +_fini:
 +    push %rax
 +.section .note.GNU-stack,"",%progbits
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/crt-x86_64/crtn.S mlibc-nomos/sysdeps/nomos/crt-x86_64/crtn.S
+diff -urN --no-dereference mlibc/sysdeps/nomos/crt-x86_64/crtn.S mlibc-nomos/sysdeps/nomos/crt-x86_64/crtn.S
 --- mlibc/sysdeps/nomos/crt-x86_64/crtn.S	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/crt-x86_64/crtn.S	2025-07-07 23:40:44.214126521 +1200
-@@ -0,0 +1,8 @@
++++ mlibc-nomos/sysdeps/nomos/crt-x86_64/crtn.S	2025-12-08 15:16:19.864290226 +1300
+@@ -0,0 +1,10 @@
++.ident "x86_64-nomos-mlibc crtn"
++
 +.section .init
 +    pop %rax
 +    ret
@@ -49,28 +104,50 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/crt-x86_64/crtn.S 
 +    pop %rax
 +    ret
 +.section .note.GNU-stack,"",%progbits
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/generic/entry.cpp mlibc-nomos/sysdeps/nomos/generic/entry.cpp
+diff -urN --no-dereference mlibc/sysdeps/nomos/crt-x86_64/Scrt1.S mlibc-nomos/sysdeps/nomos/crt-x86_64/Scrt1.S
+--- mlibc/sysdeps/nomos/crt-x86_64/Scrt1.S	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/crt-x86_64/Scrt1.S	2025-12-08 14:38:15.127713948 +1300
+@@ -0,0 +1,7 @@
++.section .text
++.global _start
++_start:
++    mov %rsp, %rsi
++    lea main(%rip), %rdi
++    call __mlibc_entry
++.section .note.GNU-stack,"",%progbits
+diff -urN --no-dereference mlibc/sysdeps/nomos/generic/entry.cpp mlibc-nomos/sysdeps/nomos/generic/entry.cpp
 --- mlibc/sysdeps/nomos/generic/entry.cpp	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/generic/entry.cpp	2025-07-07 23:57:05.236298922 +1200
-@@ -0,0 +1,14 @@
++++ mlibc-nomos/sysdeps/nomos/generic/entry.cpp	2025-12-10 19:50:59.045927715 +1300
+@@ -0,0 +1,25 @@
 +#include <mlibc/elf/startup.h>
 +#include <stdint.h>
 +#include <stdlib.h>
 +#include <sys/auxv.h>
++#include <nomos/syscall.h>
 +
 +extern "C" void __dlapi_enter(uintptr_t *);
 +
 +extern char **environ;
++
++extern "C" void __mlibc_sigret_inner(void) {
++    syscall(SYSCALL_SIGRETURN);
++    __builtin_unreachable();
++}
++
++// Userspace sigret trampoline.
++extern "C" __attribute__((naked)) void __mlibc_sigret(void) {
++    asm("call __mlibc_sigret_inner");
++}
 +
 +extern "C" void __mlibc_entry(int (*main_fn)(int argc, char *argv[], char *env[]), uintptr_t *entry_stack) {
 +    __dlapi_enter(entry_stack);
 +    auto result = main_fn(mlibc::entry_stack.argc, mlibc::entry_stack.argv, environ);
 +    exit(result);
 +}
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cpp mlibc-nomos/sysdeps/nomos/generic/generic.cpp
+diff -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cpp mlibc-nomos/sysdeps/nomos/generic/generic.cpp
 --- mlibc/sysdeps/nomos/generic/generic.cpp	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/generic/generic.cpp	2025-07-29 16:54:41.021710500 +1200
-@@ -0,0 +1,283 @@
++++ mlibc-nomos/sysdeps/nomos/generic/generic.cpp	2025-12-11 02:19:32.471270276 +1300
+@@ -0,0 +1,664 @@
 +#include <asm/ioctls.h>
 +#include <bits/ensure.h>
 +#include <errno.h>
@@ -85,6 +162,10 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cp
 +#include <stdlib.h>
 +#include <sys/select.h>
 +#include <sys/types.h>
++#include <stdlib.h>
++#include <unistd.h>
++
++#include <abi-bits/stat.h>
 +
 +#define STUB { \
 +    __ensure(!"STUB function was called."); \
@@ -117,8 +198,12 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cp
 +        return 0;
 +    }
 +
-+    int sys_futex_wait(int *ptr, int expected, const struct timespec *time) STUB
-+    int sys_futex_wake(int *ptr) STUB
++    int sys_futex_wait(int *ptr, int expected, const struct timespec *time) {
++        return 0;
++    }
++    int sys_futex_wake(int *ptr) {
++        return 0;
++    }
 +
 +    int sys_futex_tid(void) {
 +        return syscall(SYSCALL_GETTID);
@@ -206,14 +291,18 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cp
 +    }
 +
 +    int sys_anon_allocate(size_t size, void **ptr) {
-+        return sys_vm_map(NULL, size, PROT_READ | PROT_WRITE, MAP_ANON, -1, 0, ptr);
++        return sys_vm_map(NULL, size, PROT_READ | PROT_WRITE, MAP_ANON, 0, 0, ptr);
 +    }
 +
 +    int sys_anon_free(void *ptr, size_t size) {
 +        return sys_vm_unmap(ptr, size);
 +    }
 +
-+    int sys_clock_get(int clock, time_t *secs, long *nanos) STUB
++    int sys_clock_get(int clock, time_t *secs, long *nanos) {
++        *secs = 0;
++        *nanos = 0;
++        return 0;
++    }
 +
 +    int sys_seek(int fd, off_t offset, int whence, off_t *newoff) {
 +        ssize_t ret = syscall(SYSCALL_SEEK, fd, offset, whence);
@@ -351,12 +440,533 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cp
 +    }
 +
 +    int sys_open_dir(const char *path, int *handle) {
-+        return sys_open(path, O_RDONLY | O_DIRECTORY, 0660, handle);
++        return sys_open(path, O_DIRECTORY, 0660, handle);
 +    }
++
++
++    extern "C" void __mlibc_sigret(void);
++
++#if !defined(MLIBC_BUILDING_RTLD) || defined(MLIBC_STATIC_BUILD)
++
++    int sys_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact) {
++        ssize_t ret;
++        if (act) {
++            struct sigaction kact = *act;
++            // Set the restorer to our userspace trampoline.
++            kact.sa_restorer = __mlibc_sigret;
++            ret = syscall(SYSCALL_SIGACTION, signum, (uint64_t)&kact, (uint64_t)oldact);
++        } else {
++            ret = syscall(SYSCALL_SIGACTION, signum, 0, (uint64_t)oldact);
++        }
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++#endif
++
++    int sys_kill(pid_t pid, int sig) {
++        ssize_t ret = syscall(SYSCALL_KILL, pid, sig);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_sigreturn() {
++        syscall(SYSCALL_SIGRETURN);
++        __builtin_unreachable();
++    }
++
++    int sys_sigprocmask(int how, const sigset_t *set, sigset_t *retrieve) {
++        ssize_t ret = syscall(SYSCALL_SIGPROCMASK, how, (uint64_t)set, (uint64_t)retrieve);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_execve(const char *path, char *const argv[], char *const envp[]) {
++        ssize_t ret = syscall(SYSCALL_EXECVE, (uint64_t)path, (uint64_t)argv, (uint64_t)envp);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_waitpid(pid_t pid, int *status, int flags, struct rusage *ru, pid_t *ret_pid) {
++        ssize_t ret = syscall(SYSCALL_WAITPID, pid, (uint64_t)status, flags, (uint64_t)ru);
++        if (ret < 0) {
++            return -ret;
++        }
++
++        *ret_pid = ret;
++        return 0;
++    }
++
++    int sys_read_entries(int handle, void *buffer, size_t max_size, size_t *bytes_read) {
++        ssize_t ret = syscall(SYSCALL_GETDENTS, handle, (uint64_t)buffer, max_size);
++        if (ret < 0) {
++            return -ret;
++        }
++
++        *bytes_read = ret;
++        return 0;
++    }
++
++    int sys_chdir(const char *path) {
++        ssize_t ret = syscall(SYSCALL_CHDIR, (uint64_t)path);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_fchdir(int fd) {
++        ssize_t ret = syscall(SYSCALL_FCHDIR, fd);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_getresuid(uid_t *ruid, uid_t *euid, uid_t *suid) {
++        return syscall(SYSCALL_GETRESUID, (uint64_t)ruid, (uint64_t)euid, (uint64_t)suid);
++    }
++
++    int sys_getresgid(gid_t *rgid, gid_t *egid, gid_t *sgid) {
++        return syscall(SYSCALL_GETRESGID, (uint64_t)rgid, (uint64_t)egid, (uint64_t)sgid);
++    }
++
++    uid_t sys_getuid(void) {
++        uid_t ruid, euid, suid;
++        sys_getresuid(&ruid, &euid, &suid);
++        return ruid;
++    }
++
++    gid_t sys_getgid(void) {
++        gid_t rgid, egid, sgid;
++        sys_getresgid(&rgid, &egid, &sgid);
++        return rgid;
++    }
++
++    uid_t sys_geteuid(void) {
++        uid_t ruid, euid, suid;
++        sys_getresuid(&ruid, &euid, &suid);
++        return euid;
++    }
++
++    gid_t sys_getegid(void) {
++        gid_t rgid, egid, sgid;
++        sys_getresgid(&rgid, &egid, &sgid);
++        return egid;
++    }
++
++    int sys_setresuid(uid_t ruid, uid_t euid, uid_t suid) {
++        ssize_t ret = syscall(SYSCALL_SETRESUID, ruid, euid, suid);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_setresgid(gid_t rgid, gid_t egid, gid_t sgid) {
++        ssize_t ret = syscall(SYSCALL_SETRESGID, rgid, egid, sgid);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_setuid(uid_t uid) {
++        int ret = sys_setresuid(uid, uid, uid);
++        return ret;
++    }
++
++    int sys_setgid(gid_t gid) {
++        int ret = sys_setresgid(gid, gid, gid);
++        return ret;
++    }
++
++    int sys_seteuid(uid_t euid) {
++        return sys_setresuid(-1, euid, -1);
++    }
++
++    int sys_setegid(gid_t egid) {
++        return sys_setresgid(-1, egid, -1);
++    }
++
++    void sys_yield(void) {
++        syscall(SYSCALL_YIELD);
++    }
++
++    int sys_getcwd(char *buf, size_t size) {
++        ssize_t ret = syscall(SYSCALL_GETCWD, (uint64_t)buf, size);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_fcntl(int fd, int request, va_list args, int *result) {
++        ssize_t ret = syscall(SYSCALL_FCNTL, fd, request, va_arg(args, uint64_t));
++        if (ret < 0) {
++            return -ret;
++        }
++
++        if (result) {
++            *result = ret;
++        }
++        return 0;
++    }
++
++    int sys_stat(fsfd_target fsfdt, int fd, const char *path, int flags, struct stat *statbuf) {
++        ssize_t ret;
++
++        switch (fsfdt) {
++            case fsfd_target::fd: {
++                ret = syscall(SYSCALL_STAT, fd, (uint64_t)"", 0, (uint64_t)statbuf, AT_EMPTY_PATH);
++                break;
++            }
++            case fsfd_target::path: {
++                ret = syscall(SYSCALL_STAT, AT_FDCWD, (uint64_t)path, strlen(path), (uint64_t)statbuf, flags);
++                break;
++            }
++            case fsfd_target::fd_path: {
++                size_t len = strlen(path);
++                ret = syscall(SYSCALL_STAT, fd, (uint64_t)path, len, (uint64_t)statbuf, flags);
++                break;
++            }
++            default: {
++                __ensure(!"stat: Invalid fsfdt");
++                __builtin_unreachable();
++            }
++        }
++
++        if (ret < 0) {
++            return -ret;
++        }
++
++        return ret;
++    }
++
++    int sys_access(const char *pathname, int mode) {
++        size_t len = strlen(pathname);
++        ssize_t ret = syscall(SYSCALL_ACCESS, AT_FDCWD, (uint64_t)pathname, len, mode, 0);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_readlink(const char *path, void *buf, size_t size, ssize_t *length) {
++        ssize_t ret;
++        size_t path_len = strlen(path);
++        ret = syscall(SYSCALL_READLINK, AT_FDCWD, (uint64_t)path, path_len, (uint64_t)buf, size);
++        if (ret < 0) {
++            return -ret;
++        } else {
++            *length = ret;
++            return 0;
++        }
++    }
++
++    int sys_uname(struct utsname *buf) {
++        ssize_t ret = syscall(SYSCALL_UNAME, (uint64_t)buf);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_gethostname(char *name, size_t len) {
++        struct utsname uts;
++        if (int err = sys_uname(&uts); err) {
++            return err;
++        }
++        ssize_t host_len = strlen(uts.nodename);
++        if ((size_t)host_len >= len) {
++            return ENAMETOOLONG;
++        }
++        memcpy(name, uts.nodename, host_len);
++        name[host_len] = '\0';
++        return 0;
++    }
++
++    int sys_pipe(int *fd, int flags) {
++        ssize_t ret = syscall(SYSCALL_PIPE, (uint64_t)fd, flags);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_unlinkat(int fd, const char *path, int flags) {
++        size_t len = strlen(path);
++        ssize_t ret = syscall(SYSCALL_UNLINK, fd, (uint64_t)path, len, flags);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_rmdir(const char *path) {
++        size_t len = strlen(path);
++        ssize_t ret = syscall(SYSCALL_UNLINK, AT_FDCWD, (uint64_t)path, len, AT_REMOVEDIR);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_ppoll(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout, const sigset_t *sigmask, int *num_events) {
++        ssize_t ret = syscall(SYSCALL_PPOLL, (uint64_t)fds, nfds, (uint64_t)timeout, (uint64_t)sigmask);
++        if (ret < 0) {
++            return -ret;
++        }
++        if (num_events) {
++            *num_events = ret;
++        }
++        return 0;
++    }
++
++    int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout, int *num_events) {
++        struct timespec ts;
++        ts.tv_sec = timeout / 1000;
++        ts.tv_nsec = (timeout % 1000) * 1000000;
++        return sys_ppoll(fds, nfds, timeout == -1 ? NULL : &ts, NULL, num_events);
++    }
++
++    int sys_pause(void) {
++        return sys_ppoll(NULL, 0, NULL, NULL, NULL);
++    }
++
++    int sys_sigsuspend(const sigset_t *mask) {
++        return sys_ppoll(NULL, 0, NULL, mask, NULL);
++    }
++#if !defined(MLIBC_BUILDING_RTLD) || defined(MLIBC_STATIC_BUILD)
++
++    int sys_pselect(int nfds, fd_set *read_set, fd_set *write_set, fd_set *except_set, const struct timespec *timeout, const sigset_t *sigmask, int *num_events) {
++        struct pollfd *fds = (struct pollfd *)calloc(nfds, sizeof(struct pollfd));
++        if (!fds) {
++            return ENOMEM;
++        }
++
++        for (int i = 0; i < nfds; i++) {
++            struct pollfd *fd = &fds[i];
++            fd->events = 0;
++            fd->revents = 0;
++
++            if (read_set && FD_ISSET(i, read_set)) {
++                fd->events |= POLLIN;
++            }
++            if (write_set && FD_ISSET(i, write_set)) {
++                fd->events |= POLLOUT;
++            }
++            if (except_set && FD_ISSET(i, except_set)) {
++                fd->events |= POLLPRI;
++            }
++            if (!fd->events) {
++                fd->fd = -1;
++                continue;
++            }
++            fd->fd = i;
++        }
++
++        ssize_t ret = sys_ppoll(fds, nfds, timeout, sigmask, num_events);
++        if (ret != 0) {
++            free(fds);
++            return ret;
++        }
++
++        fd_set res_read_set, res_write_set, res_except_set;
++        FD_ZERO(&res_read_set);
++        FD_ZERO(&res_write_set);
++        FD_ZERO(&res_except_set);
++
++        for (int i = 0; i < nfds; i++) {
++            struct pollfd *fd = &fds[i];
++
++            if (read_set && FD_ISSET(i, read_set) && (fd->revents & (POLLIN | POLLERR | POLLHUP)) != 0) {
++                FD_SET(i, &res_read_set);
++            }
++            if (write_set && FD_ISSET(i, write_set) && (fd->revents & (POLLOUT | POLLERR | POLLHUP)) != 0) {
++                FD_SET(i, &res_write_set);
++            }
++            if (except_set && FD_ISSET(i, except_set) && (fd->revents & POLLPRI) != 0) {
++                FD_SET(i, &res_except_set);
++            }
++        }
++
++        free(fds);
++        if (read_set) {
++            *read_set = res_read_set;
++        }
++        if (write_set) {
++            *write_set = res_write_set;
++        }
++        if (except_set) {
++            *except_set = res_except_set;
++        }
++        return 0;
++    }
++#endif
 +}
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/access.h mlibc-nomos/sysdeps/nomos/include/abi-bits/access.h
+\ No newline at end of file
+diff -urN --no-dereference mlibc/sysdeps/nomos/generic/mntent.cpp mlibc-nomos/sysdeps/nomos/generic/mntent.cpp
+--- mlibc/sysdeps/nomos/generic/mntent.cpp	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/generic/mntent.cpp	2025-12-08 14:38:15.127917342 +1300
+@@ -0,0 +1,126 @@
++#include <errno.h>
++#include <mntent.h>
++#include <stdio.h>
++#include <string.h>
++
++static char *buf;
++static size_t bufsize;
++
++FILE *setmntent(const char *__filename, const char *__type) {
++    return fopen(__filename, __type);
++}
++
++struct mntent *getmntent(FILE *__f) {
++    static struct mntent mnt;
++    return getmntent_r(__f, &mnt, (char *)&buf, 0);
++}
++
++int addmntent(FILE *__f, const struct mntent *__mnt) {
++    if (!__f || !__mnt) {
++        return -1;
++    }
++
++    if (fseek(__f, 0, SEEK_END) != 0) {
++        return -1;
++    }
++
++    fprintf(__f, "%s\t%s\t%s\t%s\t%d\t%d\n",
++            __mnt->mnt_fsname,
++            __mnt->mnt_dir,
++            __mnt->mnt_type,
++            __mnt->mnt_opts,
++            __mnt->mnt_freq,
++            __mnt->mnt_passno);
++    return 0;
++}
++
++int endmntent(FILE *__f) {
++    if (!__f) {
++        return -1;
++    }
++    return fclose(__f);
++}
++
++char *hasmntopt(const struct mntent *__mnt, const char *__opt) {
++    if (!__mnt || !__opt) {
++        return nullptr;
++    }
++
++    size_t optlen = strlen(__opt);
++    char *opts = __mnt->mnt_opts;
++    while (true) {
++        if (!strncmp(opts, __opt, optlen) && (!opts[optlen] || opts[optlen] == ',' || opts[optlen] == '=')) {
++            return opts;
++        }
++        opts = strchr(opts, ',');
++        if (opts) {
++            opts++;
++        } else {
++            break;
++        }
++    }
++
++    return nullptr;
++}
++
++struct mntent *getmntent_r(FILE *__f, struct mntent *__mnt, char *__linebuf, int __buflen) {
++    int n[8];
++    bool useinternal = (__linebuf == (char *)&buf);
++
++    size_t len;
++
++    __mnt->mnt_freq = 0;
++    __mnt->mnt_passno = 0;
++
++    do {
++        if (useinternal) {
++            getline(&buf, &bufsize, __f);
++            __linebuf = buf;
++        } else {
++            fgets(__linebuf, __buflen, __f);
++        }
++
++        if (feof(__f)) {
++            return nullptr;
++        }
++
++        if (ferror(__f)) {
++            return nullptr;
++        }
++
++        if (!strchr(__linebuf, '\n')) {
++            fscanf(__f, "%*[^\n]%*[\n]");
++            errno = ERANGE;
++            return nullptr;
++        }
++
++        len = strlen(__linebuf);
++        if (len > __INT_MAX__) {
++            continue;
++        }
++
++        for (size_t i = 0; i < sizeof(n) / sizeof(n[0]); i++) {
++            n[i] = len;
++        }
++
++        // Parse a full line out.
++        sscanf(__linebuf, " %n%*s%n %n%*s%n %n%*s%n %n%*s%n %d %d",
++               &n[0], &n[1],
++               &n[2], &n[3],
++               &n[4], &n[5],
++               &n[6], &n[7],
++               &__mnt->mnt_freq,
++               &__mnt->mnt_passno);
++    } while (__linebuf[n[0]] == '#' || n[1] == len); // Skip comments and empty lines.
++
++    __linebuf[n[1]] = '\0';
++    __linebuf[n[3]] = '\0';
++    __linebuf[n[5]] = '\0';
++    __linebuf[n[7]] = '\0';
++
++    __mnt->mnt_fsname = __linebuf + n[0];
++    __mnt->mnt_dir = __linebuf + n[2];
++    __mnt->mnt_type = __linebuf + n[4];
++    __mnt->mnt_opts = __linebuf + n[6];
++    return __mnt;
++}
+\ No newline at end of file
+diff -urN --no-dereference mlibc/sysdeps/nomos/generic/mount.cpp mlibc-nomos/sysdeps/nomos/generic/mount.cpp
+--- mlibc/sysdeps/nomos/generic/mount.cpp	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/generic/mount.cpp	2025-12-08 14:38:15.127941833 +1300
+@@ -0,0 +1,15 @@
++#include <errno.h>
++#include <sys/mount.h>
++#include <nomos/syscall.h>
++
++int mount(const char *__source, const char *__target, const char *__filesystemtype, unsigned long __mountflags, const void *__data) {
++    return -ENOSYS;
++}
++
++int umount(const char *__target) {
++    return -ENOSYS;
++}
++
++int umount2(const char *__target, int __flags) {
++    return -ENOSYS;
++}
+\ No newline at end of file
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/access.h mlibc-nomos/sysdeps/nomos/include/abi-bits/access.h
 --- mlibc/sysdeps/nomos/include/abi-bits/access.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/access.h	2025-07-07 22:00:32.257516933 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/access.h	2025-12-08 15:37:43.639166248 +1300
 @@ -0,0 +1,9 @@
 +#ifndef _ABIBITS_ACCESS_H
 +#define _ABIBITS_ACCESS_H
@@ -367,10 +977,10 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/a
 +#define R_OK 4
 +
 +#endif /* _ABIBITS_ACCESS_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/auxv.h mlibc-nomos/sysdeps/nomos/include/abi-bits/auxv.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/auxv.h mlibc-nomos/sysdeps/nomos/include/abi-bits/auxv.h
 --- mlibc/sysdeps/nomos/include/abi-bits/auxv.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/auxv.h	2025-07-07 22:00:32.257555113 +1200
-@@ -0,0 +1,13 @@
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/auxv.h	2025-12-08 15:37:43.639205009 +1300
+@@ -0,0 +1,16 @@
 +#ifndef _ABIBITS_AUXV_H
 +#define _ABIBITS_AUXV_H
 +
@@ -380,13 +990,16 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/a
 +#define AT_FPUCW 18
 +#define AT_SECURE 23
 +#define AT_RANDOM 25
++#define AT_HWCAP2 26
++#define AT_HWCAP3 29
++#define AT_HWCAP4 30
 +#define AT_EXECFN 31
 +#define AT_SYSINFO_EHDR 33
 +
 +#endif /* _ABIBITS_AUXV_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/blkcnt_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/blkcnt_t.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/blkcnt_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/blkcnt_t.h
 --- mlibc/sysdeps/nomos/include/abi-bits/blkcnt_t.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/blkcnt_t.h	2025-07-07 22:00:32.257584374 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/blkcnt_t.h	2025-12-08 15:37:43.639234739 +1300
 @@ -0,0 +1,8 @@
 +#ifndef _ABIBITS_BLKCNT_T_H
 +#define _ABIBITS_BLKCNT_T_H
@@ -396,21 +1009,25 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/b
 +typedef __mlibc_int64 blkcnt_t;
 +
 +#endif /* _ABIBITS_BLKCNT_T_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/blksize_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/blksize_t.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/blksize_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/blksize_t.h
 --- mlibc/sysdeps/nomos/include/abi-bits/blksize_t.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/blksize_t.h	2025-07-07 22:00:32.257612224 +1200
-@@ -0,0 +1,8 @@
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/blksize_t.h	2025-12-08 15:37:43.639263980 +1300
+@@ -0,0 +1,12 @@
 +
 +#ifndef _ABIBITS_BLKSIZE_T_H
 +#define _ABIBITS_BLKSIZE_T_H
 +
++#if defined(__x86_64__) || defined(__i386__) || defined(__m68k__)
 +typedef long blksize_t;
++#elif defined(__riscv) || defined(__aarch64__) || defined(__loongarch64)
++typedef int blksize_t;
++#endif
 +
 +#endif /* _ABIBITS_BLKSIZE_T_H */
 +
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/clockid_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/clockid_t.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/clockid_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/clockid_t.h
 --- mlibc/sysdeps/nomos/include/abi-bits/clockid_t.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/clockid_t.h	2025-07-07 22:00:32.257639264 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/clockid_t.h	2025-12-08 15:37:43.639297450 +1300
 @@ -0,0 +1,7 @@
 +#ifndef _ABIBITS_CLOCKID_T_H
 +#define _ABIBITS_CLOCKID_T_H
@@ -419,9 +1036,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/c
 +
 +#endif /* _ABIBITS_CLOCKID_T_H */
 +
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/dev_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/dev_t.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/dev_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/dev_t.h
 --- mlibc/sysdeps/nomos/include/abi-bits/dev_t.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/dev_t.h	2025-07-07 22:00:32.257666365 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/dev_t.h	2025-12-08 15:37:43.639326271 +1300
 @@ -0,0 +1,10 @@
 +
 +#ifndef _ABIBITS_DEV_T_H
@@ -433,9 +1050,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/d
 +
 +#endif /* _ABIBITS_DEV_T_H */
 +
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/epoll.h mlibc-nomos/sysdeps/nomos/include/abi-bits/epoll.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/epoll.h mlibc-nomos/sysdeps/nomos/include/abi-bits/epoll.h
 --- mlibc/sysdeps/nomos/include/abi-bits/epoll.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/epoll.h	2025-07-07 22:00:32.257692435 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/epoll.h	2025-12-08 15:37:43.639356361 +1300
 @@ -0,0 +1,12 @@
 +#ifndef _ABIBITS_EPOLL_H
 +#define _ABIBITS_EPOLL_H
@@ -449,9 +1066,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/e
 +#define EPOLL_CLOEXEC 02000000 /* Same as __MLIBC_O_CLOEXEC */
 +
 +#endif /* _ABIBITS_EPOLL_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/errno.h mlibc-nomos/sysdeps/nomos/include/abi-bits/errno.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/errno.h mlibc-nomos/sysdeps/nomos/include/abi-bits/errno.h
 --- mlibc/sysdeps/nomos/include/abi-bits/errno.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/errno.h	2025-07-07 22:00:32.257714845 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/errno.h	2025-12-08 15:37:43.639384512 +1300
 @@ -0,0 +1,143 @@
 +#ifndef _ABIBITS_ERRNO_H
 +#define _ABIBITS_ERRNO_H
@@ -596,10 +1213,10 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/e
 +#define EIEIO           4095
 +
 +#endif /* _ABIBITS_ERRNO_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/fcntl.h mlibc-nomos/sysdeps/nomos/include/abi-bits/fcntl.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/fcntl.h mlibc-nomos/sysdeps/nomos/include/abi-bits/fcntl.h
 --- mlibc/sysdeps/nomos/include/abi-bits/fcntl.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/fcntl.h	2025-07-07 22:00:32.257736835 +1200
-@@ -0,0 +1,114 @@
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/fcntl.h	2025-12-08 15:37:43.639412232 +1300
+@@ -0,0 +1,167 @@
 +#ifndef _ABIBITS_FCNTL_H
 +#define _ABIBITS_FCNTL_H
 +
@@ -621,18 +1238,30 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/f
 +#define O_NONBLOCK     04000
 +#define O_DSYNC       010000
 +#define O_ASYNC       020000
-+#define O_DIRECT      040000
-+#define O_DIRECTORY  0200000
-+#define O_NOFOLLOW   0400000
 +#define O_CLOEXEC   02000000
 +#define O_SYNC      04010000
 +#define O_RSYNC     04010000
-+#define O_LARGEFILE  0100000
 +#define O_NOATIME   01000000
-+#define O_TMPFILE  020000000
++
++#if defined(__x86_64__) || defined(__i386__) || defined(__riscv) || defined(__loongarch64)
++#define O_DIRECT      040000
++#define O_LARGEFILE  0100000
++#define O_DIRECTORY  0200000
++#define O_NOFOLLOW   0400000
++#elif defined(__aarch64__) || defined(__m68k__)
++#define O_DIRECTORY   040000
++#define O_NOFOLLOW   0100000
++#define O_DIRECT     0200000
++#define O_LARGEFILE  0400000
++#else
++#warning "Missing <fcntl.h> support for this architecture!"
++#endif
++
++#define O_TMPFILE (020000000 | O_DIRECTORY)
 +
 +#define O_EXEC O_PATH
 +#define O_SEARCH O_PATH
++#define O_TTY_INIT 0
 +
 +#define F_DUPFD  0
 +#define F_GETFD  1
@@ -645,11 +1274,23 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/f
 +#define F_SETSIG 10
 +#define F_GETSIG 11
 +
-+#define F_GETLK 5
-+#define F_SETLK 6
-+#define F_SETLK64 F_SETLK
-+#define F_SETLKW 7
-+#define F_SETLKW64 F_SETLKW
++#if __INTPTR_WIDTH__ == 64
++
++#define F_GETLK64 5
++#define F_SETLK64 6
++#define F_SETLKW64 7
++
++#else /* __INTPTR_WIDTH__ == 64 */
++
++#define F_GETLK64 12
++#define F_SETLK64 13
++#define F_SETLKW64 14
++
++#endif
++
++#define F_GETLK F_GETLK64
++#define F_SETLK F_SETLK64
++#define F_SETLKW F_SETLKW64
 +
 +#define F_SETOWN_EX 15
 +#define F_GETOWN_EX 16
@@ -685,26 +1326,39 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/f
 +#define AT_REMOVEDIR 0x200
 +#define AT_SYMLINK_FOLLOW 0x400
 +#define AT_EACCESS 0x200
++
++#if defined(_GNU_SOURCE)
 +#define AT_NO_AUTOMOUNT 0x800
 +#define AT_EMPTY_PATH 0x1000
++#endif
 +
-+#if __MLIBC_LINUX_OPTION
++#if __MLIBC_LINUX_OPTION && defined(_GNU_SOURCE)
++
++#define DN_ACCESS 1
++#define DN_MODIFY 2
++#define DN_CREATE 4
++#define DN_DELETE 8
++#define DN_RENAME 16
++#define DN_ATTRIB 32
++#define DN_MULTISHOT 0x80000000
 +
 +#define AT_STATX_SYNC_AS_STAT 0x0000
 +#define AT_STATX_FORCE_SYNC 0x2000
 +#define AT_STATX_DONT_SYNC 0x4000
 +#define AT_STATX_SYNC_TYPE 0x6000
 +
-+#endif /* __MLIBC_LINUX_OPTION */
++#endif /* __MLIBC_LINUX_OPTION && defined(_GNU_SOURCE) */
 +
-+#if defined(_GNU_SOURCE)
++#if defined(_GNU_SOURCE) || __MLIBC_POSIX2024
 +struct f_owner_ex {
 +	int type;
 +	pid_t pid;
 +};
-+#endif /* _GNU_SOURCE */
++#endif /* defined(_GNU_SOURCE) || __MLIBC_POSIX2024 */
 +
 +#define F_OWNER_TID 0
++#define F_OWNER_PID 1
++#define F_OWNER_PGRP 2
 +
 +#define POSIX_FADV_NORMAL 0
 +#define POSIX_FADV_RANDOM 1
@@ -713,10 +1367,42 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/f
 +#define POSIX_FADV_DONTNEED 4
 +#define POSIX_FADV_NOREUSE 5
 +
++#define S_IRWXU 0700
++#define S_IRUSR 0400
++#define S_IWUSR 0200
++#define S_IXUSR 0100
++#define S_IRWXG 070
++#define S_IRGRP 040
++#define S_IWGRP 020
++#define S_IXGRP 010
++#define S_IRWXO 07
++#define S_IROTH 04
++#define S_IWOTH 02
++#define S_IXOTH 01
++#define S_ISUID 04000
++#define S_ISGID 02000
++#define S_ISVTX 01000
++
 +#endif /* _ABIBITS_FCNTL_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/fsblkcnt_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/fsblkcnt_t.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/fd_set.h mlibc-nomos/sysdeps/nomos/include/abi-bits/fd_set.h
+--- mlibc/sysdeps/nomos/include/abi-bits/fd_set.h	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/fd_set.h	2025-12-08 15:37:43.639439803 +1300
+@@ -0,0 +1,12 @@
++#ifndef _ABIBITS_FD_SET_H
++#define _ABIBITS_FD_SET_H
++
++#include <bits/types.h>
++
++#define FD_SETSIZE 1024
++
++typedef struct __attribute__((__aligned__(__alignof__(long)))) {
++	__mlibc_uint8 fds_bits[128];
++} fd_set;
++
++#endif /* _ABIBITS_FD_SET_H */
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/fsblkcnt_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/fsblkcnt_t.h
 --- mlibc/sysdeps/nomos/include/abi-bits/fsblkcnt_t.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/fsblkcnt_t.h	2025-07-07 22:00:32.257758626 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/fsblkcnt_t.h	2025-12-08 15:37:43.639467863 +1300
 @@ -0,0 +1,8 @@
 +#ifndef _ABIBITS_FSBLKCNT_T_H
 +#define _ABIBITS_FSBLKCNT_T_H
@@ -726,9 +1412,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/f
 +typedef __mlibc_uint64 fsblkcnt_t;
 +
 +#endif /* _ABIBITS_FSBLKCNT_T_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/fsfilcnt_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/fsfilcnt_t.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/fsfilcnt_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/fsfilcnt_t.h
 --- mlibc/sysdeps/nomos/include/abi-bits/fsfilcnt_t.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/fsfilcnt_t.h	2025-07-07 22:00:32.257780526 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/fsfilcnt_t.h	2025-12-08 15:37:43.639496094 +1300
 @@ -0,0 +1,8 @@
 +#ifndef _ABIBITS_FSFILCNT_T_H
 +#define _ABIBITS_FSFILCNT_T_H
@@ -738,9 +1424,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/f
 +typedef __mlibc_uint64 fsfilcnt_t;
 +
 +#endif /* _ABIBITS_FSFILCNT_T_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/gid_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/gid_t.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/gid_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/gid_t.h
 --- mlibc/sysdeps/nomos/include/abi-bits/gid_t.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/gid_t.h	2025-07-07 22:00:32.257802716 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/gid_t.h	2025-12-08 15:37:43.639523534 +1300
 @@ -0,0 +1,8 @@
 +
 +#ifndef _ABIBITS_GID_T_H
@@ -750,17 +1436,18 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/g
 +
 +#endif /* _ABIBITS_GID_T_H */
 +
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/in.h mlibc-nomos/sysdeps/nomos/include/abi-bits/in.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/in.h mlibc-nomos/sysdeps/nomos/include/abi-bits/in.h
 --- mlibc/sysdeps/nomos/include/abi-bits/in.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/in.h	2025-07-07 22:00:32.257824526 +1200
-@@ -0,0 +1,235 @@
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/in.h	2025-12-08 15:37:43.639554465 +1300
+@@ -0,0 +1,245 @@
 +#ifndef _ABIBITS_IN_H
 +#define _ABIBITS_IN_H
 +
 +#include <mlibc-config.h>
++#include <abi-bits/sa_family_t.h>
++#include <abi-bits/sockaddr_storage.h>
 +#include <bits/posix/in_addr_t.h>
 +#include <bits/posix/in_port_t.h>
-+#include <abi-bits/socket.h>
 +#include <stdint.h>
 +
 +#ifdef __cplusplus
@@ -803,14 +1490,16 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/i
 +	unsigned        ipv6mr_interface;
 +};
 +
++#if defined(_GNU_SOURCE)
 +struct in6_pktinfo {
 +	struct in6_addr ipi6_addr;
 +	uint32_t ipi6_ifindex;
 +};
++#endif /* defined(_GNU_SOURCE) */
++
 +#endif /* !__MLIBC_LINUX_OPTION || (!defined(_UAPI_LINUX_IN6_H) && !defined(_UAPI_IPV6_H)) */
 +
-+#define MCAST_INCLUDE 1
-+
++#if defined(_DEFAULT_SOURCE)
 +struct ip_mreq {
 +	struct in_addr imr_multiaddr;
 +	struct in_addr imr_interface;
@@ -844,6 +1533,8 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/i
 +	struct sockaddr_storage gsr_group;
 +	struct sockaddr_storage gsr_source;
 +};
++
++#endif /* defined(_DEFAULT_SOURCE) */
 +
 +#ifdef __cplusplus
 +}
@@ -923,7 +1614,10 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/i
 +#define IP_BLOCK_SOURCE 38
 +#define IP_ADD_SOURCE_MEMBERSHIP 39
 +#define IP_DROP_SOURCE_MEMBERSHIP 40
++
++#if defined(_DEFAULT_SOURCE)
 +#define IP_UNICAST_IF 50
++#endif /* defined(_DEFAULT_SOURCE) */
 +
 +#define IPV6_2292PKTOPTIONS 6
 +#define IPV6_2292HOPLIMIT 8
@@ -962,11 +1656,13 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/i
 +#define IP_PMTUDISC_INTERFACE 4
 +#define IP_PMTUDISC_OMIT 5
 +
++#if defined(_DEFAULT_SOURCE)
 +#define MCAST_JOIN_GROUP 42
 +#define MCAST_BLOCK_SOURCE 43
 +#define MCAST_UNBLOCK_SOURCE 44
 +#define MCAST_JOIN_SOURCE_GROUP 46
 +#define MCAST_LEAVE_SOURCE_GROUP 47
++#endif /* defined(_DEFAULT_SOURCE) */
 +
 +#if __MLIBC_LINUX_OPTION
 +
@@ -989,9 +1685,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/i
 +#endif /* __MLIBC_LINUX_OPTION */
 +
 +#endif /* _ABITBITS_IN_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/ino_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/ino_t.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/ino_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/ino_t.h
 --- mlibc/sysdeps/nomos/include/abi-bits/ino_t.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/ino_t.h	2025-07-07 22:00:32.257852377 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/ino_t.h	2025-12-08 15:37:43.639586455 +1300
 @@ -0,0 +1,11 @@
 +
 +#ifndef _ABIBITS_INO_T_H
@@ -1004,9 +1700,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/i
 +
 +#endif /* _ABIBITS_INO_T_H */
 +
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/inotify.h mlibc-nomos/sysdeps/nomos/include/abi-bits/inotify.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/inotify.h mlibc-nomos/sysdeps/nomos/include/abi-bits/inotify.h
 --- mlibc/sysdeps/nomos/include/abi-bits/inotify.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/inotify.h	2025-07-07 22:00:32.257875217 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/inotify.h	2025-12-08 15:37:43.639622656 +1300
 @@ -0,0 +1,15 @@
 +#ifndef _ABIBITS_INOTIFY_H
 +#define _ABIBITS_INOTIFY_H
@@ -1023,9 +1719,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/i
 +#define IN_NONBLOCK O_NONBLOCK
 +
 +#endif /* _ABIBITS_INOTIFY_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/ioctls.h mlibc-nomos/sysdeps/nomos/include/abi-bits/ioctls.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/ioctls.h mlibc-nomos/sysdeps/nomos/include/abi-bits/ioctls.h
 --- mlibc/sysdeps/nomos/include/abi-bits/ioctls.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/ioctls.h	2025-07-07 22:00:32.257898637 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/ioctls.h	2025-12-08 15:37:43.639652247 +1300
 @@ -0,0 +1,20 @@
 +#ifndef _ABIBITS_IOCTLS_H
 +#define _ABIBITS_IOCTLS_H
@@ -1047,9 +1743,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/i
 +#define SIOCGIFNETMASK 0x891B
 +
 +#endif /* _ABIBITS_IOCTLS_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/ipc.h mlibc-nomos/sysdeps/nomos/include/abi-bits/ipc.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/ipc.h mlibc-nomos/sysdeps/nomos/include/abi-bits/ipc.h
 --- mlibc/sysdeps/nomos/include/abi-bits/ipc.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/ipc.h	2025-07-07 22:00:32.257921307 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/ipc.h	2025-12-08 15:37:43.639681477 +1300
 @@ -0,0 +1,50 @@
 +#ifndef _ABIBITS_IPC_H
 +#define _ABIBITS_IPC_H
@@ -1101,23 +1797,23 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/i
 +#endif
 +
 +#endif
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/limits.h mlibc-nomos/sysdeps/nomos/include/abi-bits/limits.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/limits.h mlibc-nomos/sysdeps/nomos/include/abi-bits/limits.h
 --- mlibc/sysdeps/nomos/include/abi-bits/limits.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/limits.h	2025-07-07 22:00:32.257943338 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/limits.h	2025-12-08 15:37:43.639710698 +1300
 @@ -0,0 +1,10 @@
 +#ifndef _ABIBITS_LIMITS_H
 +#define _ABIBITS_LIMITS_H
 +
-+#define IOV_MAX 1024
-+#define LOGIN_NAME_MAX 256
-+#define HOST_NAME_MAX 64
-+#define NAME_MAX 255
-+#define OPEN_MAX 256
++#define __MLIBC_IOV_MAX 1024
++#define __MLIBC_LOGIN_NAME_MAX 256
++#define __MLIBC_HOST_NAME_MAX 64
++#define __MLIBC_NAME_MAX 255
++#define __MLIBC_OPEN_MAX 256
 +
 +#endif /*_ABIBITS_LIMITS_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/mode_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/mode_t.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/mode_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/mode_t.h
 --- mlibc/sysdeps/nomos/include/abi-bits/mode_t.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/mode_t.h	2025-07-07 22:00:32.257999308 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/mode_t.h	2025-12-08 15:37:43.639739278 +1300
 @@ -0,0 +1,8 @@
 +
 +#ifndef _ABIBITS_MODE_T_H
@@ -1127,9 +1823,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/m
 +
 +#endif /* _ABIBITS_MODE_T_H */
 +
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/mqueue.h mlibc-nomos/sysdeps/nomos/include/abi-bits/mqueue.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/mqueue.h mlibc-nomos/sysdeps/nomos/include/abi-bits/mqueue.h
 --- mlibc/sysdeps/nomos/include/abi-bits/mqueue.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/mqueue.h	2025-07-07 22:00:32.258033579 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/mqueue.h	2025-12-08 15:37:43.639766869 +1300
 @@ -0,0 +1,21 @@
 +#ifndef _ABIBITS_MQUEUE_H
 +#define _ABIBITS_MQUEUE_H
@@ -1152,9 +1848,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/m
 +
 +#endif /* _ABIBITS_MQUEUE_H */
 +
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/msg.h mlibc-nomos/sysdeps/nomos/include/abi-bits/msg.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/msg.h mlibc-nomos/sysdeps/nomos/include/abi-bits/msg.h
 --- mlibc/sysdeps/nomos/include/abi-bits/msg.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/msg.h	2025-07-07 22:00:32.258068779 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/msg.h	2025-12-08 15:37:43.639795169 +1300
 @@ -0,0 +1,45 @@
 +#ifndef _ABIBITS_MSG_H
 +#define _ABIBITS_MSG_H
@@ -1173,7 +1869,7 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/m
 +
 +struct msqid64_ds {
 +	struct ipc64_perm msg_perm;
-+#if (UINTPTR_MAX == UINT64_MAX) /* || x32 ABI */
++#if (__INTPTR_WIDTH__ == 64) /* || x32 ABI */
 +	time_t msg_stime;
 +	time_t msg_rtime;
 +	time_t msg_ctime;
@@ -1201,21 +1897,25 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/m
 +
 +#endif /* _ABIBITS_MSG_H */
 +
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/nlink_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/nlink_t.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/nlink_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/nlink_t.h
 --- mlibc/sysdeps/nomos/include/abi-bits/nlink_t.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/nlink_t.h	2025-07-07 22:00:32.258103629 +1200
-@@ -0,0 +1,8 @@
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/nlink_t.h	2025-12-08 15:37:43.639822740 +1300
+@@ -0,0 +1,12 @@
 +
 +#ifndef _ABIBITS_NLINK_T_H
 +#define _ABIBITS_NLINK_T_H
 +
++#if defined(__x86_64__)
 +typedef unsigned long nlink_t;
++#else
++typedef unsigned int nlink_t;
++#endif
 +
 +#endif /* _ABIBITS_NLINK_T_H */
 +
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/packet.h mlibc-nomos/sysdeps/nomos/include/abi-bits/packet.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/packet.h mlibc-nomos/sysdeps/nomos/include/abi-bits/packet.h
 --- mlibc/sysdeps/nomos/include/abi-bits/packet.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/packet.h	2025-07-07 22:00:32.258138870 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/packet.h	2025-12-08 15:37:43.639849970 +1300
 @@ -0,0 +1,6 @@
 +#ifndef _ABIBITS_PACKET_H
 +#define _ABIBITS_PACKET_H
@@ -1223,9 +1923,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/p
 +#define PACKET_HOST 0
 +
 +#endif /* _ABIBITS_PACKET_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/pid_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/pid_t.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/pid_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/pid_t.h
 --- mlibc/sysdeps/nomos/include/abi-bits/pid_t.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/pid_t.h	2025-07-07 22:00:32.258177340 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/pid_t.h	2025-12-08 15:37:43.639877840 +1300
 @@ -0,0 +1,8 @@
 +
 +#ifndef _ABIBITS_PID_T_H
@@ -1235,10 +1935,10 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/p
 +
 +#endif /* _ABIBITS_PID_T_H */
 +
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/poll.h mlibc-nomos/sysdeps/nomos/include/abi-bits/poll.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/poll.h mlibc-nomos/sysdeps/nomos/include/abi-bits/poll.h
 --- mlibc/sysdeps/nomos/include/abi-bits/poll.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/poll.h	2025-07-07 22:00:32.258212611 +1200
-@@ -0,0 +1,16 @@
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/poll.h	2025-12-08 15:37:43.639905421 +1300
+@@ -0,0 +1,24 @@
 +#ifndef _ABIBITS_POLL_H
 +#define _ABIBITS_POLL_H
 +
@@ -1250,14 +1950,22 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/p
 +#define POLLNVAL 0x0020
 +#define POLLRDNORM 0x0040
 +#define POLLRDBAND 0x0080
-+#define POLLWRNORM 0x0100
-+#define POLLWRBAND 0x0200
 +#define POLLRDHUP 0x2000
 +
++#if defined(__x86_64__) || defined(__i386__) || defined(__aarch64__) || defined(__riscv) || defined(__loongarch64)
++#define POLLWRNORM 0x0100
++#define POLLWRBAND 0x0200
++#elif defined(__m68k__)
++#define POLLWRNORM POLLOUT
++#define POLLWRBAND 0x0100
++#else
++#warning "Missing poll.h definitions for this architecture!"
++#endif
++
 +#endif /* _ABIBITS_POLL_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/ptrace.h mlibc-nomos/sysdeps/nomos/include/abi-bits/ptrace.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/ptrace.h mlibc-nomos/sysdeps/nomos/include/abi-bits/ptrace.h
 --- mlibc/sysdeps/nomos/include/abi-bits/ptrace.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/ptrace.h	2025-07-07 22:00:32.258247301 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/ptrace.h	2025-12-08 15:37:43.639933981 +1300
 @@ -0,0 +1,65 @@
 +#ifndef _ABIBITS_PTRACE_H
 +#define _ABIBITS_PTRACE_H
@@ -1324,9 +2032,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/p
 +#define PTRACE_PEEKSIGINFO_SHARED 1
 +
 +#endif /* _ABIBITS_PTRACE_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/random.h mlibc-nomos/sysdeps/nomos/include/abi-bits/random.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/random.h mlibc-nomos/sysdeps/nomos/include/abi-bits/random.h
 --- mlibc/sysdeps/nomos/include/abi-bits/random.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/random.h	2025-07-07 22:00:32.258277231 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/random.h	2025-12-08 15:37:43.639962552 +1300
 @@ -0,0 +1,14 @@
 +#ifndef _ABIBITS_RANDOM_H
 +#define _ABIBITS_RANDOM_H
@@ -1342,9 +2050,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/r
 +#define GRND_INSECURE 0x0004
 +
 +#endif /* _ABIBITS_RANDOM_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/reboot.h mlibc-nomos/sysdeps/nomos/include/abi-bits/reboot.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/reboot.h mlibc-nomos/sysdeps/nomos/include/abi-bits/reboot.h
 --- mlibc/sysdeps/nomos/include/abi-bits/reboot.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/reboot.h	2025-07-07 22:00:32.258311962 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/reboot.h	2025-12-08 15:37:43.639990372 +1300
 @@ -0,0 +1,18 @@
 +#ifndef _ABIBITS_REBOOT_H
 +#define _ABIBITS_REBOOT_H
@@ -1364,10 +2072,10 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/r
 +#define RB_KEXEC 0x45584543
 +
 +#endif /* _ABIBITS_REBOOT_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/resource.h mlibc-nomos/sysdeps/nomos/include/abi-bits/resource.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/resource.h mlibc-nomos/sysdeps/nomos/include/abi-bits/resource.h
 --- mlibc/sysdeps/nomos/include/abi-bits/resource.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/resource.h	2025-07-07 22:00:32.258345592 +1200
-@@ -0,0 +1,54 @@
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/resource.h	2025-12-08 15:37:43.640018943 +1300
+@@ -0,0 +1,72 @@
 +#ifndef _ABIBITS_RESOURCE_H
 +#define _ABIBITS_RESOURCE_H
 +
@@ -1375,21 +2083,36 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/r
 +extern "C" {
 +#endif
 +
++#include <mlibc-config.h>
 +#include <bits/posix/timeval.h>
++
++#if defined(_GNU_SOURCE)
++#define PRIO_MIN (-20)
++#define PRIO_MAX 20
++#endif /* defined(_GNU_SOURCE) */
++
++#if defined(_DEFAULT_SOURCE) || __MLIBC_XOPEN
++#define PRIO_PROCESS 0
++#define PRIO_PGRP 1
++#define PRIO_USER 2
 +
 +#define RUSAGE_SELF 0
 +#define RUSAGE_CHILDREN -1
 +
 +#define RLIMIT_CPU 0
++#endif /* defined(_DEFAULT_SOURCE) || __MLIBC_XOPEN */
++
 +#define RLIMIT_FSIZE 1
 +#define RLIMIT_DATA 2
 +#define RLIMIT_STACK 3
 +#define RLIMIT_CORE 4
++#define RLIMIT_NOFILE 7
++#define RLIMIT_AS 9
++
++#if defined(_DEFAULT_SOURCE)
 +#define RLIMIT_RSS 5
 +#define RLIMIT_NPROC 6
-+#define RLIMIT_NOFILE 7
 +#define RLIMIT_MEMLOCK 8
-+#define RLIMIT_AS 9
 +#define RLIMIT_LOCKS 10
 +#define RLIMIT_SIGPENDING 11
 +#define RLIMIT_MSGQUEUE 12
@@ -1397,7 +2120,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/r
 +#define RLIMIT_RTPRIO 14
 +#define RLIMIT_RTTIME 15
 +#define RLIMIT_NLIMITS 16
++#endif
 +
++#if defined(_DEFAULT_SOURCE) || __MLIBC_XOPEN
 +struct rusage {
 +	struct timeval ru_utime;
 +	struct timeval ru_stime;
@@ -1416,15 +2141,127 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/r
 +	long ru_nvcsw;
 +	long ru_nivcsw;
 +};
++#endif /* defined(_DEFAULT_SOURCE) || __MLIBC_XOPEN */
 +
 +#ifdef __cplusplus
 +}
 +#endif
 +
 +#endif /* _ABIBITS_RESOURCE_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/rlim_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/rlim_t.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/riscv-hwprobe.h mlibc-nomos/sysdeps/nomos/include/abi-bits/riscv-hwprobe.h
+--- mlibc/sysdeps/nomos/include/abi-bits/riscv-hwprobe.h	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/riscv-hwprobe.h	2025-12-08 15:37:43.640048853 +1300
+@@ -0,0 +1,107 @@
++#ifndef _ABIBITS_RISCV_HWPROBE_H
++#define _ABIBITS_RISCV_HWPROBE_H
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++struct riscv_hwprobe {
++	signed long long int key;
++	unsigned long long int value;
++};
++
++#define RISCV_HWPROBE_KEY_MVENDORID 0
++#define RISCV_HWPROBE_KEY_MARCHID 1
++#define RISCV_HWPROBE_KEY_MIMPID 2
++#define RISCV_HWPROBE_KEY_BASE_BEHAVIOR 3
++#define 	RISCV_HWPROBE_BASE_BEHAVIOR_IMA (1 << 0)
++#define RISCV_HWPROBE_KEY_IMA_EXT_0 4
++#define 	RISCV_HWPROBE_IMA_FD (1 << 0)
++#define 	RISCV_HWPROBE_IMA_C (1 << 1)
++#define 	RISCV_HWPROBE_IMA_V (1 << 2)
++#define 	RISCV_HWPROBE_EXT_ZBA (1 << 3)
++#define 	RISCV_HWPROBE_EXT_ZBB (1 << 4)
++#define 	RISCV_HWPROBE_EXT_ZBS (1 << 5)
++#define 	RISCV_HWPROBE_EXT_ZICBOZ (1 << 6)
++#define 	RISCV_HWPROBE_EXT_ZBC (1 << 7)
++#define 	RISCV_HWPROBE_EXT_ZBKB (1 << 8)
++#define 	RISCV_HWPROBE_EXT_ZBKC (1 << 9)
++#define 	RISCV_HWPROBE_EXT_ZBKX (1 << 10)
++#define 	RISCV_HWPROBE_EXT_ZKND (1 << 11)
++#define 	RISCV_HWPROBE_EXT_ZKNE (1 << 12)
++#define 	RISCV_HWPROBE_EXT_ZKNH (1 << 13)
++#define 	RISCV_HWPROBE_EXT_ZKSED (1 << 14)
++#define 	RISCV_HWPROBE_EXT_ZKSH (1 << 15)
++#define 	RISCV_HWPROBE_EXT_ZKT (1 << 16)
++#define 	RISCV_HWPROBE_EXT_ZVBB (1 << 17)
++#define 	RISCV_HWPROBE_EXT_ZVBC (1 << 18)
++#define 	RISCV_HWPROBE_EXT_ZVKB (1 << 19)
++#define 	RISCV_HWPROBE_EXT_ZVKG (1 << 20)
++#define 	RISCV_HWPROBE_EXT_ZVKNED (1 << 21)
++#define 	RISCV_HWPROBE_EXT_ZVKNHA (1 << 22)
++#define 	RISCV_HWPROBE_EXT_ZVKNHB (1 << 23)
++#define 	RISCV_HWPROBE_EXT_ZVKSED (1 << 24)
++#define 	RISCV_HWPROBE_EXT_ZVKSH (1 << 25)
++#define 	RISCV_HWPROBE_EXT_ZVKT (1 << 26)
++#define 	RISCV_HWPROBE_EXT_ZFH (1 << 27)
++#define 	RISCV_HWPROBE_EXT_ZFHMIN (1 << 28)
++#define 	RISCV_HWPROBE_EXT_ZIHINTNTL (1 << 29)
++#define 	RISCV_HWPROBE_EXT_ZVFH (1 << 30)
++#define 	RISCV_HWPROBE_EXT_ZVFHMIN (1ULL << 31)
++#define 	RISCV_HWPROBE_EXT_ZFA (1ULL << 32)
++#define 	RISCV_HWPROBE_EXT_ZTSO (1ULL << 33)
++#define 	RISCV_HWPROBE_EXT_ZACAS (1ULL << 34)
++#define 	RISCV_HWPROBE_EXT_ZICOND (1ULL << 35)
++#define 	RISCV_HWPROBE_EXT_ZIHINTPAUSE (1ULL << 36)
++#define 	RISCV_HWPROBE_EXT_ZVE32X (1ULL << 37)
++#define 	RISCV_HWPROBE_EXT_ZVE32F (1ULL << 38)
++#define 	RISCV_HWPROBE_EXT_ZVE64X (1ULL << 39)
++#define 	RISCV_HWPROBE_EXT_ZVE64F (1ULL << 40)
++#define 	RISCV_HWPROBE_EXT_ZVE64D (1ULL << 41)
++#define 	RISCV_HWPROBE_EXT_ZIMOP (1ULL << 42)
++#define 	RISCV_HWPROBE_EXT_ZCA (1ULL << 43)
++#define 	RISCV_HWPROBE_EXT_ZCB (1ULL << 44)
++#define 	RISCV_HWPROBE_EXT_ZCD (1ULL << 45)
++#define 	RISCV_HWPROBE_EXT_ZCF (1ULL << 46)
++#define 	RISCV_HWPROBE_EXT_ZCMOP (1ULL << 47)
++#define 	RISCV_HWPROBE_EXT_ZAWRS (1ULL << 48)
++#define 	RISCV_HWPROBE_EXT_SUPM (1ULL << 49)
++#define 	RISCV_HWPROBE_EXT_ZICNTR (1ULL << 50)
++#define 	RISCV_HWPROBE_EXT_ZIHPM (1ULL << 51)
++#define 	RISCV_HWPROBE_EXT_ZFBFMIN (1ULL << 52)
++#define 	RISCV_HWPROBE_EXT_ZVFBFMIN (1ULL << 53)
++#define 	RISCV_HWPROBE_EXT_ZVFBFWMA (1ULL << 54)
++#define 	RISCV_HWPROBE_EXT_ZICBOM (1ULL << 55)
++#define 	RISCV_HWPROBE_EXT_ZAAMO (1ULL << 56)
++#define 	RISCV_HWPROBE_EXT_ZALRSC (1ULL << 57)
++#define 	RISCV_HWPROBE_EXT_ZABHA (1ULL << 58)
++#define RISCV_HWPROBE_KEY_CPUPERF_0 5
++#define 	RISCV_HWPROBE_MISALIGNED_UNKNOWN (0 << 0)
++#define 	RISCV_HWPROBE_MISALIGNED_EMULATED (1 << 0)
++#define 	RISCV_HWPROBE_MISALIGNED_SLOW (2 << 0)
++#define 	RISCV_HWPROBE_MISALIGNED_FAST (3 << 0)
++#define 	RISCV_HWPROBE_MISALIGNED_UNSUPPORTED (4 << 0)
++#define 	RISCV_HWPROBE_MISALIGNED_MASK (7 << 0)
++#define RISCV_HWPROBE_KEY_ZICBOZ_BLOCK_SIZE 6
++#define RISCV_HWPROBE_KEY_HIGHEST_VIRT_ADDRESS 7
++#define RISCV_HWPROBE_KEY_TIME_CSR_FREQ 8
++#define RISCV_HWPROBE_KEY_MISALIGNED_SCALAR_PERF 9
++#define 	RISCV_HWPROBE_MISALIGNED_SCALAR_UNKNOWN 0
++#define 	RISCV_HWPROBE_MISALIGNED_SCALAR_EMULATED 1
++#define 	RISCV_HWPROBE_MISALIGNED_SCALAR_SLOW 2
++#define 	RISCV_HWPROBE_MISALIGNED_SCALAR_FAST 3
++#define 	RISCV_HWPROBE_MISALIGNED_SCALAR_UNSUPPORTED 4
++#define RISCV_HWPROBE_KEY_MISALIGNED_VECTOR_PERF 10
++#define 	RISCV_HWPROBE_MISALIGNED_VECTOR_UNKNOWN 0
++#define 	RISCV_HWPROBE_MISALIGNED_VECTOR_SLOW 2
++#define 	RISCV_HWPROBE_MISALIGNED_VECTOR_FAST 3
++#define 	RISCV_HWPROBE_MISALIGNED_VECTOR_UNSUPPORTED 4
++#define RISCV_HWPROBE_KEY_VENDOR_EXT_THEAD_0 11
++#define RISCV_HWPROBE_KEY_ZICBOM_BLOCK_SIZE 12
++#define RISCV_HWPROBE_KEY_VENDOR_EXT_SIFIVE_0 13
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* _ABIBITS_RISCV_HWPROBE_H */
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/rlim_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/rlim_t.h
 --- mlibc/sysdeps/nomos/include/abi-bits/rlim_t.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/rlim_t.h	2025-07-07 22:00:32.258376662 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/rlim_t.h	2025-12-08 15:37:43.640082274 +1300
 @@ -0,0 +1,10 @@
 +#ifndef _ABIBITS_RLIM_T_H
 +#define _ABIBITS_RLIM_T_H
@@ -1436,9 +2273,54 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/r
 +#endif
 +
 +#endif /* _ABIBITS_RLIM_T_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/seek-whence.h mlibc-nomos/sysdeps/nomos/include/abi-bits/seek-whence.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/route.h mlibc-nomos/sysdeps/nomos/include/abi-bits/route.h
+--- mlibc/sysdeps/nomos/include/abi-bits/route.h	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/route.h	2025-12-08 15:37:43.640111075 +1300
+@@ -0,0 +1,31 @@
++#ifndef _ABIBITS_ROUTE_H
++#define _ABIBITS_ROUTE_H
++
++#include <sys/socket.h>
++
++#define RTF_HOST 0x0004
++#define RTF_REJECT 0x0200
++
++struct rtentry {
++	unsigned long int rt_pad1;
++	struct sockaddr rt_dst;
++	struct sockaddr rt_gateway;
++	struct sockaddr rt_genmask;
++	unsigned short int rt_flags;
++	short int rt_pad2;
++	unsigned long int rt_pad3;
++	unsigned char rt_tos;
++	unsigned char rt_class;
++#if __INTPTR_WIDTH__ == 64
++	short int rt_pad4[3];
++#else
++	short int rt_pad4;
++#endif
++	short int rt_metric;
++	char *rt_dev;
++	unsigned long int rt_mtu;
++	unsigned long int rt_window;
++	unsigned short int rt_irtt;
++};
++
++#endif /* _ABIBITS_ROUTE_H */
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/sa_family_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/sa_family_t.h
+--- mlibc/sysdeps/nomos/include/abi-bits/sa_family_t.h	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/sa_family_t.h	2025-12-08 15:37:43.640140595 +1300
+@@ -0,0 +1,6 @@
++#ifndef _ABIBITS_SA_FAMILY_T_H
++#define _ABIBITS_SA_FAMILY_T_H
++
++typedef unsigned short sa_family_t;
++
++#endif /* _ABIBITS_SA_FAMILY_T_H */
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/seek-whence.h mlibc-nomos/sysdeps/nomos/include/abi-bits/seek-whence.h
 --- mlibc/sysdeps/nomos/include/abi-bits/seek-whence.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/seek-whence.h	2025-07-07 22:00:32.258408753 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/seek-whence.h	2025-12-08 15:37:43.640169276 +1300
 @@ -0,0 +1,10 @@
 +#ifndef _ABIBITS_SEEK_WHENCE_H
 +#define _ABIBITS_SEEK_WHENCE_H
@@ -1450,10 +2332,44 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +#define SEEK_HOLE 4
 +
 +#endif /* _ABIBITS_SEEK_WHENCE_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/shm.h mlibc-nomos/sysdeps/nomos/include/abi-bits/shm.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/sem.h mlibc-nomos/sysdeps/nomos/include/abi-bits/sem.h
+--- mlibc/sysdeps/nomos/include/abi-bits/sem.h	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/sem.h	2025-12-08 15:37:43.640197736 +1300
+@@ -0,0 +1,30 @@
++#ifndef _ABIBITS_SEM_H
++#define _ABIBITS_SEM_H
++
++#include <abi-bits/time.h>
++#include <abi-bits/ipc.h>
++
++#define GETPID 11
++#define GETVAL 12
++#define GETALL 13
++#define SETVAL 16
++#define SETALL 17
++
++#define SEM_UNDO 0x1000
++
++struct sembuf {
++	unsigned short int sem_num;
++	short int sem_op;
++	short int sem_flg;
++};
++
++struct semid_ds {
++	struct ipc_perm sem_perm;
++	time_t          sem_otime;
++	time_t          sem_ctime;
++
++	unsigned long   sem_nsems;
++	unsigned long   __unused[2];
++};
++
++#endif /* _ABIBITS_SEM_H */
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/shm.h mlibc-nomos/sysdeps/nomos/include/abi-bits/shm.h
 --- mlibc/sysdeps/nomos/include/abi-bits/shm.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/shm.h	2025-07-07 22:00:32.258442583 +1200
-@@ -0,0 +1,107 @@
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/shm.h	2025-12-08 15:37:43.640225777 +1300
+@@ -0,0 +1,104 @@
 +#ifndef _ABIBITS_SHM_H
 +#define _ABIBITS_SHM_H
 +
@@ -1506,19 +2422,16 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +struct shmid_ds {
 +	struct ipc_perm shm_perm;
 +	size_t shm_segsz;
-+	unsigned long __shm_atime_lo;
++	unsigned long shm_atime;
 +	unsigned long __shm_atime_hi;
-+	unsigned long __shm_dtime_lo;
++	unsigned long shm_dtime;
 +	unsigned long __shm_dtime_hi;
-+	unsigned long __shm_ctime_lo;
++	unsigned long shm_ctime;
 +	unsigned long __shm_ctime_hi;
 +	pid_t shm_cpid;
 +	pid_t shm_lpid;
 +	unsigned long shm_nattch;
-+	unsigned long __unused[3];
-+	time_t shm_atime;
-+	time_t shm_dtime;
-+	time_t shm_ctime;
++	unsigned long __unused[2];
 +};
 +#elif defined(__x86_64__) || defined(__aarch64__) || (defined(__riscv) && __riscv_xlen == 64) || defined(__loongarch64)
 +struct shmid_ds {
@@ -1561,9 +2474,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +#endif
 +
 +#endif /* _ABIBITS_SHM_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/sigevent.h mlibc-nomos/sysdeps/nomos/include/abi-bits/sigevent.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/sigevent.h mlibc-nomos/sysdeps/nomos/include/abi-bits/sigevent.h
 --- mlibc/sysdeps/nomos/include/abi-bits/sigevent.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/sigevent.h	2025-07-07 22:00:32.258478573 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/sigevent.h	2025-12-08 15:37:43.640282168 +1300
 @@ -0,0 +1,24 @@
 +#ifndef _ABIBITS_SIGEVENT_H
 +#define _ABIBITS_SIGEVENT_H
@@ -1589,104 +2502,46 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +#endif
 +
 +#endif /* _ABIBITS_SIGEVENT_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/signal.h mlibc-nomos/sysdeps/nomos/include/abi-bits/signal.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/sig-limits.h mlibc-nomos/sysdeps/nomos/include/abi-bits/sig-limits.h
+--- mlibc/sysdeps/nomos/include/abi-bits/sig-limits.h	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/sig-limits.h	2025-12-08 15:37:43.640253937 +1300
+@@ -0,0 +1,12 @@
++#ifndef _ABIBITS_SIG_LIMITS_H
++#define _ABIBITS_SIG_LIMITS_H
++
++#include <mlibc-config.h>
++
++#define NSIG_MAX 1024
++
++#if defined(_DEFAULT_SOURCE) || __MLIBC_XOPEN
++#define NZERO 20
++#endif /* defined(_DEFAULT_SOURCE) || __MLIBC_XOPEN */
++
++#endif /*_ABIBITS_SIG_LIMITS_H */
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/signal.h mlibc-nomos/sysdeps/nomos/include/abi-bits/signal.h
 --- mlibc/sysdeps/nomos/include/abi-bits/signal.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/signal.h	2025-07-07 22:00:32.258510484 +1200
-@@ -0,0 +1,642 @@
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/signal.h	2025-12-11 01:52:02.277768194 +1300
+@@ -0,0 +1,224 @@
 +#ifndef _ABIBITS_SIGNAL_H
 +#define _ABIBITS_SIGNAL_H
 +
-+#include <stdint.h>
-+#include <time.h>
-+#include <abi-bits/sigevent.h>
 +#include <abi-bits/pid_t.h>
++#include <abi-bits/sigevent.h>
 +#include <abi-bits/uid_t.h>
 +#include <bits/size_t.h>
-+
-+#define POLL_IN 1
-+#define POLL_OUT 2
-+#define POLL_MSG 3
-+#define POLL_ERR 4
-+#define POLL_PRI 5
-+#define POLL_HUP 6
-+
-+/* struct taken from musl. */
++#include <stdint.h>
 +
 +typedef struct {
-+	int si_signo, si_errno, si_code;
-+	union {
-+		char __pad[128 - 2*sizeof(int) - sizeof(long)];
-+		struct {
-+			union {
-+				struct {
-+					pid_t si_pid;
-+					uid_t si_uid;
-+				} __piduid;
-+				struct {
-+					int si_timerid;
-+					int si_overrun;
-+				} __timer;
-+			} __first;
-+			union {
-+				union sigval si_value;
-+				struct {
-+					int si_status;
-+					clock_t si_utime, si_stime;
-+				} __sigchld;
-+			} __second;
-+		} __si_common;
-+		struct {
-+			void *si_addr;
-+			short si_addr_lsb;
-+			union {
-+				struct {
-+					void *si_lower;
-+					void *si_upper;
-+				} __addr_bnd;
-+				unsigned si_pkey;
-+			} __first;
-+		} __sigfault;
-+		struct {
-+			long si_band;
-+			int si_fd;
-+		} __sigpoll;
-+		struct {
-+			void *si_call_addr;
-+			int si_syscall;
-+			unsigned si_arch;
-+		} __sigsys;
-+	} __si_fields;
++	int si_signo;
++	int si_code;
++	int si_errno;
++	pid_t si_pid;
++	uid_t si_uid;
++	void *si_addr;
++	int si_status;
++	long si_band;
++	union sigval si_value;
 +} siginfo_t;
-+#define si_pid     __si_fields.__si_common.__first.__piduid.si_pid
-+#define si_uid     __si_fields.__si_common.__first.__piduid.si_uid
-+#define si_status  __si_fields.__si_common.__second.__sigchld.si_status
-+#define si_utime   __si_fields.__si_common.__second.__sigchld.si_utime
-+#define si_stime   __si_fields.__si_common.__second.__sigchld.si_stime
-+#define si_value   __si_fields.__si_common.__second.si_value
-+#define si_addr    __si_fields.__sigfault.si_addr
-+#define si_addr_lsb __si_fields.__sigfault.si_addr_lsb
-+#define si_lower   __si_fields.__sigfault.__first.__addr_bnd.si_lower
-+#define si_upper   __si_fields.__sigfault.__first.__addr_bnd.si_upper
-+#define si_pkey    __si_fields.__sigfault.__first.si_pkey
-+#define si_band    __si_fields.__sigpoll.si_band
-+#define si_fd      __si_fields.__sigpoll.si_fd
-+#define si_timerid __si_fields.__si_common.__first.__timer.si_timerid
-+#define si_overrun __si_fields.__si_common.__first.__timer.si_overrun
-+#define si_ptr     si_value.sival_ptr
-+#define si_int     si_value.sival_int
-+#define si_call_addr __si_fields.__sigsys.si_call_addr
-+#define si_syscall __si_fields.__sigsys.si_syscall
-+#define si_arch    __si_fields.__sigsys.si_arch
-+
-+/* Required for sys_sigaction sysdep. */
-+#define SA_NOCLDSTOP 1
-+#define SA_NOCLDWAIT 2
-+#define SA_SIGINFO 4
-+#define SA_ONSTACK 0x08000000
-+#define SA_RESTART 0x10000000
-+#define SA_NODEFER 0x40000000
-+#define SA_RESETHAND 0x80000000
-+#define SA_RESTORER 0x04000000
 +
 +#ifdef __cplusplus
 +extern "C" {
@@ -1699,81 +2554,52 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +#define SIG_DFL ((__sighandler)(void *)(0))
 +#define SIG_IGN ((__sighandler)(void *)(1))
 +
-+#define SIGABRT 6
-+#define SIGFPE 8
-+#define SIGILL 4
++
++#define SIGHUP 1
 +#define SIGINT 2
++#define SIGQUIT 3
++#define SIGILL 4
++#define SIGTRAP 5
++#define SIGABRT 6
++#define SIGIOT SIGABRT
++#define SIGBUS 7
++#define SIGFPE 8
++#define SIGKILL 9
++#define SIGUSR1 10
 +#define SIGSEGV 11
++#define SIGUSR2 12
++#define SIGPIPE 13
++#define SIGALRM 14
 +#define SIGTERM 15
++#define SIGSTKFLT 16
++#define SIGCHLD 17
++#define SIGCONT 18
++#define SIGSTOP 19
++#define SIGTSTP 20
++#define SIGTTIN 21
++#define SIGTTOU 22
++#define SIGURG 23
++#define SIGXCPU 24
++#define SIGXFSZ 25
++#define SIGVTALRM 26
 +#define SIGPROF 27
++#define SIGWINCH 28
 +#define SIGIO 29
 +#define SIGPWR 30
-+#define SIGRTMIN 35
-+#define SIGRTMAX 64
-+
-+typedef struct {
-+	unsigned long sig[1024 / (8 * sizeof(long))];
-+} sigset_t;
-+
-+/* constants for sigprocmask() */
-+#define SIG_BLOCK 0
-+#define SIG_UNBLOCK 1
-+#define SIG_SETMASK 2
-+
-+#define SIGHUP    1
-+#define SIGQUIT   3
-+#define SIGTRAP   5
-+#define SIGIOT    SIGABRT
-+#define SIGBUS    7
-+#define SIGKILL   9
-+#define SIGUSR1   10
-+#define SIGUSR2   12
-+#define SIGPIPE   13
-+#define SIGALRM   14
-+#define SIGSTKFLT 16
-+#define SIGCHLD   17
-+#define SIGCONT   18
-+#define SIGSTOP   19
-+#define SIGTSTP   20
-+#define SIGTTIN   21
-+#define SIGTTOU   22
-+#define SIGURG    23
-+#define SIGXCPU   24
-+#define SIGXFSZ   25
-+#define SIGVTALRM 26
-+#define SIGWINCH  28
-+#define SIGPOLL   29
-+#define SIGSYS    31
++#define SIGSYS 31
 +#define SIGUNUSED SIGSYS
 +#define SIGCANCEL 32
-+#define SIGTIMER  33
++#define SIGTIMER 33
++#define SIGRTMIN 34
++#define SIGRTMAX 63
 +
-+#define MINSIGSTKSZ 2048
-+#define SIGSTKSZ 8192
-+#define SS_ONSTACK 1
-+#define SS_DISABLE 2
-+
-+typedef struct __stack {
-+	void *ss_sp;
-+	int ss_flags;
-+	size_t ss_size;
-+} stack_t;
-+
-+/* constants for sigev_notify of struct sigevent */
-+#define SIGEV_SIGNAL 0
-+#define SIGEV_NONE 1
-+#define SIGEV_THREAD 2
-+#define SIGEV_THREAD_ID 4
-+
-+#define SEGV_MAPERR 1
-+#define SEGV_ACCERR 2
-+
++/* siginfo->si_info constants */
++/* SIGBUS */
 +#define BUS_ADRALN 1
 +#define BUS_ADRERR 2
 +#define BUS_OBJERR 3
-+#define BUS_MCEERR_AR 4
-+#define BUS_MCEERR_AO 5
 +
++/* SIGILL */
 +#define ILL_ILLOPC 1
 +#define ILL_ILLOPN 2
 +#define ILL_ILLADR 3
@@ -1784,7 +2610,42 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +#define ILL_BADSTK 8
 +#define ILL_BADIADDR 9
 +
-+#define NSIG 65
++/* SIGSEGV */
++#define SEGV_MAPERR 1
++#define SEGV_ACCERR 2
++
++typedef uint64_t sigset_t;
++
++/* Constants for sigprocmask() */
++#define SIG_BLOCK 0
++#define SIG_UNBLOCK 1
++#define SIG_SETMASK 2
++
++#define SA_NOCLDSTOP 1
++#define SA_NOCLDWAIT 2
++#define SA_SIGINFO 4
++#define SA_ONSTACK 0x08000000
++#define SA_RESTART 0x10000000
++#define SA_NODEFER 0x40000000
++#define SA_RESETHAND 0x80000000
++#define SA_RESTORER 0x04000000
++
++#define MINSIGSTKSZ 2048
++#define SIGSTKSZ 8192
++#define SS_ONSTACK 1
++#define SS_DISABLE 2
++
++typedef struct __stack {
++    void *ss_sp;
++    size_t ss_size;
++    int ss_flags;
++} stack_t;
++
++/* constants for sigev_notify of struct sigevent */
++#define SIGEV_SIGNAL 0
++#define SIGEV_NONE 1
++#define SIGEV_THREAD 2
++#define SIGEV_THREAD_ID 4
 +
 +#define SI_ASYNCNL (-60)
 +#define SI_TKILL (-6)
@@ -1796,28 +2657,21 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +#define SI_USER 0
 +#define SI_KERNEL 128
 +
-+#if defined(__i386__)
-+#define REG_GS 0
-+#define REG_FS 1
-+#define REG_ES 2
-+#define REG_DS 3
-+#define REG_EDI 4
-+#define REG_ESI 5
-+#define REG_EBP 6
-+#define REG_ESP 7
-+#define REG_EBX 8
-+#define REG_EDX 9
-+#define REG_ECX 10
-+#define REG_EAX 11
-+#define REG_TRAPNO 12
-+#define REG_ERR 13
-+#define REG_EIP 14
-+#define REG_CS 15
-+#define REG_EFL 16
-+#define REG_UESP 17
-+#define REG_SS 18
-+#define NGREG 19
-+#elif defined(__x86_64__)
++#define NSIG 64
++#define _NSIG NSIG
++
++struct sigaction {
++	union {
++		void (*sa_handler)(int);
++		void (*sa_sigaction)(int, siginfo_t *, void *);
++	};
++	uint64_t sa_flags;
++	void (*sa_restorer)(void);
++	sigset_t sa_mask;
++};
++
++#if defined(__x86_64__)
++
 +#define REG_R8 0
 +#define REG_R9 1
 +#define REG_R10 2
@@ -1842,31 +2696,6 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +#define REG_OLDMASK 21
 +#define REG_CR2 22
 +#define NGREG 23
-+#endif
-+
-+#include <bits/threads.h>
-+
-+struct sigaction {
-+	union {
-+		void (*sa_handler)(int);
-+		void (*sa_sigaction)(int, siginfo_t *, void *);
-+	} __sa_handler;
-+	unsigned long sa_flags;
-+	void (*sa_restorer)(void);
-+	sigset_t sa_mask;
-+};
-+
-+#define sa_handler __sa_handler.sa_handler
-+#define sa_sigaction __sa_handler.sa_sigaction
-+
-+/* Taken from the linux kernel headers */
-+
-+#if defined(__x86_64__) || defined(__i386__)
-+
-+struct _fpreg {
-+	unsigned short significand[4];
-+	unsigned short exponent;
-+};
 +
 +struct _fpxreg {
 +	unsigned short significand[4];
@@ -1879,7 +2708,6 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +};
 +
 +struct _fpstate {
-+#if defined(__x86_64__)
 +	uint16_t cwd;
 +	uint16_t swd;
 +	uint16_t ftw;
@@ -1891,48 +2719,6 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +	struct _fpxreg _st[8];
 +	struct _xmmreg _xmm[16];
 +	uint32_t padding[24];
-+#elif defined(__i386__)
-+	uint32_t cw;
-+	uint32_t sw;
-+	uint32_t tag;
-+	uint32_t ipoff;
-+	uint32_t cssel;
-+	uint32_t dataoff;
-+	uint32_t datasel;
-+	struct _fpreg _st[8];
-+	uint16_t status;
-+	uint16_t magic;
-+
-+	/* FXSR FPU */
-+
-+	uint32_t _fxsr_env[6];
-+	uint32_t mxscr;
-+	uint32_t reserved;
-+	struct _fpxreg _fxsr_st[8];
-+	struct _xmmreg _xmm[8];
-+
-+	uint32_t padding2[56];
-+#endif
-+};
-+
-+struct sigcontext {
-+#if defined(__x86_64__)
-+	unsigned long r8, r9, r10, r11, r12, r13, r14, r15;
-+	unsigned long rdi, rsi, rbp, rbx, rdx, rax, rcx, rsp, rip, eflags;
-+	unsigned short cs, gs, fs, __pad0;
-+	unsigned long err, trapno, oldmask, cr2;
-+	struct _fpstate *fpstate;
-+	unsigned long __reserved1[8];
-+#elif defined(__i386__)
-+	unsigned short gs, __gsh, fs, __fsh, es, __esh, ds, __dsh;
-+	unsigned long edi, esi, ebp, esp, ebx, edx, ecx, eax;
-+	unsigned long trapno, err, eip;
-+	unsigned short cs, __csh;
-+	unsigned long eflags, esp_at_signal;
-+	unsigned short ss, __ssh;
-+	struct _fpstate *fpstate;
-+	unsigned long oldmask, cr2;
-+#endif
 +};
 +
 +typedef struct {
@@ -1947,283 +2733,8 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +	stack_t uc_stack;
 +	mcontext_t uc_mcontext;
 +	sigset_t uc_sigmask;
-+} ucontext_t;
-+
-+#elif defined(__riscv) && __riscv_xlen == 64
-+/* Definitions from Linux kernel headers. */
-+
-+#define NGREG 32
-+
-+enum {
-+  REG_PC = 0,
-+#define REG_PC REG_PC
-+  REG_RA = 1,
-+#define REG_RA REG_RA
-+  REG_SP = 2,
-+#define REG_SP REG_SP
-+  REG_TP = 4,
-+#define REG_TP REG_TP
-+  REG_S0 = 8,
-+#define REG_S0 REG_S0
-+  REG_A0 = 10
-+#define REG_A0 REG_A0
-+};
-+
-+struct __riscv_f_ext_state {
-+	uint32_t f[32];
-+	uint32_t fcsr;
-+};
-+
-+struct __riscv_d_ext_state {
-+	uint64_t f[32];
-+	uint32_t fcsr;
-+};
-+
-+struct __riscv_q_ext_state {
-+	uint64_t f[64] __attribute__((__aligned__(16)));
-+	uint32_t fcsr;
-+	uint32_t reserved[3];
-+};
-+
-+union __riscv_fp_state {
-+	struct __riscv_f_ext_state f;
-+	struct __riscv_d_ext_state d;
-+	struct __riscv_q_ext_state q;
-+};
-+
-+typedef unsigned long __riscv_mc_gp_state[NGREG];
-+
-+typedef struct sigcontext {
-+	__riscv_mc_gp_state gregs;
-+	union __riscv_fp_state fpregs;
-+} mcontext_t;
-+
-+typedef struct __ucontext {
-+	unsigned long uc_flags;
-+	struct ucontext	*uc_link;
-+	stack_t uc_stack;
-+	sigset_t uc_sigmask;
-+#pragma GCC diagnostic push
-+#pragma GCC diagnostic ignored "-Wpedantic"
-+	uint8_t __unused[1024 / 8 - sizeof(sigset_t)];
-+#pragma GCC diagnostic pop
-+	mcontext_t uc_mcontext;
-+} ucontext_t;
-+
-+#elif defined (__aarch64__)
-+
-+#define NGREG 34
-+
-+typedef struct sigcontext {
-+	uint64_t fault_address;
-+	uint64_t regs[31];
-+	uint64_t sp;
-+	uint64_t pc;
-+	uint64_t pstate;
-+	uint8_t __reserved[4096];
-+} mcontext_t;
-+
-+#define FPSIMD_MAGIC 0x46508001
-+#define ESR_MAGIC 0x45535201
-+#define EXTRA_MAGIC 0x45585401
-+#define SVE_MAGIC 0x53564501
-+struct _aarch64_ctx {
-+	uint32_t magic;
-+	uint32_t size;
-+};
-+struct fpsimd_context {
-+	struct _aarch64_ctx head;
-+	uint32_t fpsr;
-+	uint32_t fpcr;
-+	__uint128_t vregs[32];
-+};
-+struct esr_context {
-+	struct _aarch64_ctx head;
-+	uint64_t esr;
-+};
-+struct extra_context {
-+	struct _aarch64_ctx head;
-+	uint64_t datap;
-+	uint32_t size;
-+	uint32_t __reserved[3];
-+};
-+struct sve_context {
-+	struct _aarch64_ctx head;
-+	uint16_t vl;
-+	uint16_t __reserved[3];
-+};
-+#define SVE_VQ_BYTES		16
-+#define SVE_VQ_MIN		1
-+#define SVE_VQ_MAX		512
-+#define SVE_VL_MIN		(SVE_VQ_MIN * SVE_VQ_BYTES)
-+#define SVE_VL_MAX		(SVE_VQ_MAX * SVE_VQ_BYTES)
-+#define SVE_NUM_ZREGS		32
-+#define SVE_NUM_PREGS		16
-+#define sve_vl_valid(vl) \
-+	((vl) % SVE_VQ_BYTES == 0 && (vl) >= SVE_VL_MIN && (vl) <= SVE_VL_MAX)
-+#define sve_vq_from_vl(vl)	((vl) / SVE_VQ_BYTES)
-+#define sve_vl_from_vq(vq)	((vq) * SVE_VQ_BYTES)
-+#define SVE_SIG_ZREG_SIZE(vq)	((unsigned)(vq) * SVE_VQ_BYTES)
-+#define SVE_SIG_PREG_SIZE(vq)	((unsigned)(vq) * (SVE_VQ_BYTES / 8))
-+#define SVE_SIG_FFR_SIZE(vq)	SVE_SIG_PREG_SIZE(vq)
-+#define SVE_SIG_REGS_OFFSET					\
-+	((sizeof(struct sve_context) + (SVE_VQ_BYTES - 1))	\
-+		/ SVE_VQ_BYTES * SVE_VQ_BYTES)
-+#define SVE_SIG_ZREGS_OFFSET	SVE_SIG_REGS_OFFSET
-+#define SVE_SIG_ZREG_OFFSET(vq, n) \
-+	(SVE_SIG_ZREGS_OFFSET + SVE_SIG_ZREG_SIZE(vq) * (n))
-+#define SVE_SIG_ZREGS_SIZE(vq) \
-+	(SVE_SIG_ZREG_OFFSET(vq, SVE_NUM_ZREGS) - SVE_SIG_ZREGS_OFFSET)
-+#define SVE_SIG_PREGS_OFFSET(vq) \
-+	(SVE_SIG_ZREGS_OFFSET + SVE_SIG_ZREGS_SIZE(vq))
-+#define SVE_SIG_PREG_OFFSET(vq, n) \
-+	(SVE_SIG_PREGS_OFFSET(vq) + SVE_SIG_PREG_SIZE(vq) * (n))
-+#define SVE_SIG_PREGS_SIZE(vq) \
-+	(SVE_SIG_PREG_OFFSET(vq, SVE_NUM_PREGS) - SVE_SIG_PREGS_OFFSET(vq))
-+#define SVE_SIG_FFR_OFFSET(vq) \
-+	(SVE_SIG_PREGS_OFFSET(vq) + SVE_SIG_PREGS_SIZE(vq))
-+#define SVE_SIG_REGS_SIZE(vq) \
-+	(SVE_SIG_FFR_OFFSET(vq) + SVE_SIG_FFR_SIZE(vq) - SVE_SIG_REGS_OFFSET)
-+#define SVE_SIG_CONTEXT_SIZE(vq) (SVE_SIG_REGS_OFFSET + SVE_SIG_REGS_SIZE(vq))
-+
-+typedef struct __ucontext {
-+	unsigned long uc_flags;
-+	struct __ucontext *uc_link;
-+	stack_t uc_stack;
-+	sigset_t uc_sigmask;
-+	mcontext_t uc_mcontext;
-+} ucontext_t;
-+
-+#elif defined (__m68k__)
-+
-+/* taken from musl */
-+
-+#if defined(_GNU_SOURCE) || defined(__MLIBC_BUILDING_MLIBC)
-+enum { R_D0 = 0 };
-+#define R_D0 R_D0
-+enum { R_D1 = 1 };
-+#define R_D1 R_D1
-+enum { R_D2 = 2 };
-+#define R_D2 R_D2
-+enum { R_D3 = 3 };
-+#define R_D3 R_D3
-+enum { R_D4 = 4 };
-+#define R_D4 R_D4
-+enum { R_D5 = 5 };
-+#define R_D5 R_D5
-+enum { R_D6 = 6 };
-+#define R_D6 R_D6
-+enum { R_D7 = 7 };
-+#define R_D7 R_D7
-+enum { R_A0 = 8 };
-+#define R_A0 R_A0
-+enum { R_A1 = 9 };
-+#define R_A1 R_A1
-+enum { R_A2 = 10 };
-+#define R_A2 R_A2
-+enum { R_A3 = 11 };
-+#define R_A3 R_A3
-+enum { R_A4 = 12 };
-+#define R_A4 R_A4
-+enum { R_A5 = 13 };
-+#define R_A5 R_A5
-+enum { R_A6 = 14 };
-+#define R_A6 R_A6
-+enum { R_A7 = 15 };
-+#define R_A7 R_A7
-+enum { R_SP = 15 };
-+#define R_SP R_SP
-+enum { R_PC = 16 };
-+#define R_PC R_PC
-+enum { R_PS = 17 };
-+#define R_PS R_PS
-+#endif
-+
-+#if defined(_GNU_SOURCE) || defined(_BSD_SOURCE) || defined(__MLIBC_BUILDING_MLIBC)
-+
-+struct sigcontext {
-+	unsigned long sc_mask, sc_usp, sc_d0, sc_d1, sc_a0, sc_a1;
-+	unsigned short sc_sr;
-+	unsigned long sc_pc;
-+	unsigned short sc_formatvec;
-+	unsigned long sc_fpregs[6], sc_fpcntl[3];
-+	unsigned char sc_fpstate[216];
-+};
-+
-+typedef int greg_t, gregset_t[18];
-+typedef struct {
-+	int f_pcr, f_psr, f_fpiaddr, f_fpregs[8][3];
-+} fpregset_t;
-+
-+typedef struct {
-+	int version;
-+	gregset_t gregs;
-+	fpregset_t fpregs;
-+} mcontext_t;
-+#else
-+typedef struct {
-+	int __version;
-+	int __gregs[18];
-+	int __fpregs[27];
-+} mcontext_t;
-+#endif
-+
-+struct sigaltstack {
-+	void *ss_sp;
-+	int ss_flags;
-+	size_t ss_size;
-+};
-+
-+typedef struct __ucontext {
-+	unsigned long uc_flags;
-+	struct __ucontext *uc_link;
-+	stack_t uc_stack;
-+	mcontext_t uc_mcontext;
-+	long __reserved[80];
-+	sigset_t uc_sigmask;
-+} ucontext_t;
-+
-+#elif defined(__loongarch64)
-+/* Taken from musl. */
-+
-+#define NGREG 32
-+#define REG_RA 1
-+#define REG_SP 3
-+#define REG_S0 23
-+#define REG_S1 24
-+#define REG_A0 4
-+#define REG_S2 25
-+#define REG_NARGS 8
-+
-+typedef unsigned long greg_t, gregset_t[32];
-+
-+struct sigcontext {
-+	unsigned long sc_pc;
-+	unsigned long sc_regs[32];
-+	unsigned sc_flags;
-+	unsigned long sc_extcontext[1] __attribute__((__aligned__(16)));
-+};
-+
-+typedef struct {
-+	unsigned long pc;
-+	unsigned long gregs[32];
-+	unsigned flags;
-+	unsigned long extcontext[1] __attribute__((__aligned__(16)));
-+} mcontext_t;
-+
-+struct sigaltstack {
-+	void *ss_sp;
-+	int ss_flags;
-+	size_t ss_size;
-+};
-+
-+typedef struct __ucontext {
-+	unsigned long uc_flags;
-+	struct __ucontext *uc_link;
-+	stack_t uc_stack;
-+	sigset_t uc_sigmask;
-+	long __uc_pad;
-+	mcontext_t uc_mcontext;
++	struct _fpstate __fpregs_mem;
++	unsigned long __ssp[4];
 +} ucontext_t;
 +
 +#else
@@ -2235,9 +2746,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +#endif
 +
 +#endif /* _ABIBITS_SIGNAL_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/sigval.h mlibc-nomos/sysdeps/nomos/include/abi-bits/sigval.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/sigval.h mlibc-nomos/sysdeps/nomos/include/abi-bits/sigval.h
 --- mlibc/sysdeps/nomos/include/abi-bits/sigval.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/sigval.h	2025-07-07 22:00:32.258548964 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/sigval.h	2025-12-08 15:37:43.640350829 +1300
 @@ -0,0 +1,17 @@
 +#ifndef _ABIBITS_SIGVAL_H
 +#define _ABIBITS_SIGVAL_H
@@ -2256,32 +2767,14 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +#endif
 +
 +#endif /* _ABIBITS_SIGVAL_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/socket.h mlibc-nomos/sysdeps/nomos/include/abi-bits/socket.h
---- mlibc/sysdeps/nomos/include/abi-bits/socket.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/socket.h	2025-07-07 22:00:32.258574145 +1200
-@@ -0,0 +1,329 @@
-+#ifndef _ABIBITS_SOCKET_H
-+#define _ABIBITS_SOCKET_H
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/sockaddr_storage.h mlibc-nomos/sysdeps/nomos/include/abi-bits/sockaddr_storage.h
+--- mlibc/sysdeps/nomos/include/abi-bits/sockaddr_storage.h	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/sockaddr_storage.h	2025-12-08 15:37:43.640381039 +1300
+@@ -0,0 +1,12 @@
++#ifndef _ABIBITS_SOCKADDR_STORAGE_H
++#define _ABIBITS_SOCKADDR_STORAGE_H
 +
-+#include <stddef.h>
-+#include <abi-bits/socklen_t.h>
-+#include <bits/posix/iovec.h>
-+
-+#ifdef __cplusplus
-+extern "C" {
-+#endif
-+
-+typedef unsigned short sa_family_t;
-+
-+struct msghdr {
-+	void *msg_name;
-+	socklen_t msg_namelen;
-+	struct iovec *msg_iov;
-+	size_t msg_iovlen; /* int in POSIX */
-+	void *msg_control;
-+	size_t msg_controllen; /* socklen_t in POSIX */
-+	int msg_flags;
-+};
++#include <abi-bits/sa_family_t.h>
 +
 +struct sockaddr_storage {
 +	sa_family_t ss_family;
@@ -2289,13 +2782,62 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +	long __force_alignment;
 +};
 +
++#endif /* _ABIBITS_SOCKADDR_STORAGE_H */
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/socket.h mlibc-nomos/sysdeps/nomos/include/abi-bits/socket.h
+--- mlibc/sysdeps/nomos/include/abi-bits/socket.h	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/socket.h	2025-12-08 15:37:43.640410230 +1300
+@@ -0,0 +1,361 @@
++#ifndef _ABIBITS_SOCKET_H
++#define _ABIBITS_SOCKET_H
++
++#include <abi-bits/sa_family_t.h>
++#include <abi-bits/socklen_t.h>
++#include <abi-bits/sockaddr_storage.h>
++#include <bits/size_t.h>
++#include <bits/ssize_t.h>
++#include <bits/posix/iovec.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++struct msghdr {
++	void *msg_name;
++	socklen_t msg_namelen;
++	struct iovec *msg_iov;
++#if __INTPTR_WIDTH__ == 64 && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
++	int __pad0;
++#endif
++	int msg_iovlen;
++#if __INTPTR_WIDTH__ == 64 && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
++	int __pad0;
++#endif
++	void *msg_control;
++#if __INTPTR_WIDTH__ == 64 && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
++	int __pad1;
++#endif
++	socklen_t msg_controllen;
++#if __INTPTR_WIDTH__ == 64 && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
++	int __pad1;
++#endif
++	int msg_flags;
++};
++
++#if defined(_GNU_SOURCE)
 +struct mmsghdr {
 +	struct msghdr msg_hdr;
 +	unsigned int  msg_len;
 +};
++#endif
 +
 +struct cmsghdr {
-+	size_t cmsg_len; /* socklen_t in POSIX */
++#if __INTPTR_WIDTH__ == 64 && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
++	int __pad;
++#endif
++	socklen_t cmsg_len;
++#if __INTPTR_WIDTH__ == 64 && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
++	int __pad;
++#endif
 +	int cmsg_level;
 +	int cmsg_type;
 +};
@@ -2305,7 +2847,10 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +#endif
 +
 +#define SCM_RIGHTS 1
++
++#if defined(_DEFAULT_SOURCE) || __MLIBC_XOPEN
 +#define SCM_CREDENTIALS 2
++#endif /* defined(_DEFAULT_SOURCE) || __MLIBC_XOPEN */
 +
 +#define SHUT_RD 0
 +#define SHUT_WR 1
@@ -2317,16 +2862,25 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +#endif
 +
 +#define SOCK_RAW       3
-+#define SOCK_RDM       4
 +#define SOCK_SEQPACKET 5
++
++#if defined(_DEFAULT_SOURCE) || __MLIBC_XOPEN
++#define SOCK_RDM       4
 +#define SOCK_DCCP      6
 +#define SOCK_PACKET    10
++#endif /* defined(_DEFAULT_SOURCE) || __MLIBC_XOPEN */
 +
 +#ifndef SOCK_CLOEXEC
 +#define SOCK_CLOEXEC   02000000
 +#define SOCK_NONBLOCK  04000
 +#endif
 +
++#define AF_UNSPEC       0
++#define AF_UNIX         1
++#define AF_INET         2
++#define AF_INET6        10
++
++#if defined(_DEFAULT_SOURCE) || __MLIBC_XOPEN
 +#define PF_UNSPEC       0
 +#define PF_LOCAL        1
 +#define PF_UNIX         PF_LOCAL
@@ -2377,11 +2931,8 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +#define PF_XDP          44
 +#define PF_MAX          45
 +
-+#define AF_UNSPEC       PF_UNSPEC
 +#define AF_LOCAL        PF_LOCAL
-+#define AF_UNIX         AF_LOCAL
 +#define AF_FILE         AF_LOCAL
-+#define AF_INET         PF_INET
 +#define AF_AX25         PF_AX25
 +#define AF_IPX          PF_IPX
 +#define AF_APPLETALK    PF_APPLETALK
@@ -2389,7 +2940,6 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +#define AF_BRIDGE       PF_BRIDGE
 +#define AF_ATMPVC       PF_ATMPVC
 +#define AF_X25          PF_X25
-+#define AF_INET6        PF_INET6
 +#define AF_ROSE         PF_ROSE
 +#define AF_DECnet       PF_DECnet
 +#define AF_NETBEUI      PF_NETBEUI
@@ -2426,6 +2976,7 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +#define AF_SMC          PF_SMC
 +#define AF_XDP          PF_XDP
 +#define AF_MAX          PF_MAX
++#endif /* defined(_DEFAULT_SOURCE) || __MLIBC_XOPEN */
 +
 +#define SO_DEBUG        1
 +#define SO_REUSEADDR    2
@@ -2437,48 +2988,50 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +#define SO_RCVBUF       8
 +#define SO_KEEPALIVE    9
 +#define SO_OOBINLINE    10
-+#define SO_NO_CHECK     11
-+#define SO_PRIORITY     12
 +#define SO_LINGER       13
-+#define SO_BSDCOMPAT    14
-+#define SO_REUSEPORT    15
-+#define SO_PASSCRED     16
-+#define SO_PEERCRED     17
 +#define SO_RCVLOWAT     18
 +#define SO_SNDLOWAT     19
 +#define SO_ACCEPTCONN   30
-+#define SO_PEERSEC      31
-+#define SO_SNDBUFFORCE  32
-+#define SO_RCVBUFFORCE  33
 +#define SO_PROTOCOL     38
 +#define SO_DOMAIN       39
 +
 +#ifndef SO_RCVTIMEO
-+#if __LONG_MAX == 0x7fffffff
++#if __LONG_MAX__ == 0x7fffffff
 +#define SO_RCVTIMEO     66
 +#else
 +#define SO_RCVTIMEO     20
 +#endif
 +#endif
 +
-+#ifndef SO_RCVTIMEO_OLD
-+#define SO_RCVTIMEO_OLD 20
-+#endif
-+
 +#ifndef SO_SNDTIMEO
-+#if __LONG_MAX == 0x7fffffff
++#if __LONG_MAX__ == 0x7fffffff
 +#define SO_SNDTIMEO     67
 +#else
 +#define SO_SNDTIMEO     21
 +#endif
 +#endif
 +
++#if defined(_DEFAULT_SOURCE) || __MLIBC_XOPEN
++#ifndef SO_RCVTIMEO_OLD
++#define SO_RCVTIMEO_OLD 20
++#endif
++
 +#ifndef SO_SNDTIMEO_OLD
 +#define SO_SNDTIMEO_OLD 21
 +#endif
 +
++#define SO_NO_CHECK     11
++#define SO_PRIORITY     12
++#define SO_BSDCOMPAT    14
++#define SO_REUSEPORT    15
++#define SO_PASSCRED     16
++#define SO_PEERCRED     17
++#define SO_PEERSEC      31
++#define SO_SNDBUFFORCE  32
++#define SO_RCVBUFFORCE  33
++
 +#ifndef SO_TIMESTAMP
-+#if __LONG_MAX == 0x7fffffff
++#if __LONG_MAX__ == 0x7fffffff
 +#define SO_TIMESTAMP    63
 +#define SO_TIMESTAMPNS  64
 +#define SO_TIMESTAMPING 65
@@ -2532,9 +3085,11 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +#define SCM_TXTIME              SO_TXTIME
 +#define SO_BINDTOIFINDEX        62
 +#define SO_DETACH_REUSEPORT_BPF 68
++#endif /* defined(_DEFAULT_SOURCE) || __MLIBC_XOPEN */
 +
 +#define SOL_SOCKET      1
 +
++#if defined(_DEFAULT_SOURCE) || __MLIBC_XOPEN
 +#define SOL_IP          0
 +#define SOL_IPV6        41
 +#define SOL_ICMPV6      58
@@ -2563,6 +3118,7 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +#define SOL_KCM         281
 +#define SOL_TLS         282
 +#define SOL_XDP         283
++#endif /* defined(_DEFAULT_SOURCE) || __MLIBC_XOPEN */
 +
 +#define SOMAXCONN       128
 +
@@ -2570,28 +3126,31 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +#define MSG_PEEK      0x0002
 +#define MSG_DONTROUTE 0x0004
 +#define MSG_CTRUNC    0x0008
-+#define MSG_PROXY     0x0010
 +#define MSG_TRUNC     0x0020
-+#define MSG_DONTWAIT  0x0040
 +#define MSG_EOR       0x0080
 +#define MSG_WAITALL   0x0100
++#define MSG_NOSIGNAL  0x4000
++#define MSG_CMSG_CLOEXEC 0x40000000
++
++#if defined(_DEFAULT_SOURCE) || __MLIBC_XOPEN
++#define MSG_PROXY     0x0010
++#define MSG_DONTWAIT  0x0040
 +#define MSG_FIN       0x0200
 +#define MSG_SYN       0x0400
 +#define MSG_CONFIRM   0x0800
 +#define MSG_RST       0x1000
 +#define MSG_ERRQUEUE  0x2000
-+#define MSG_NOSIGNAL  0x4000
 +#define MSG_MORE      0x8000
 +#define MSG_WAITFORONE 0x10000
 +#define MSG_BATCH     0x40000
 +#define MSG_ZEROCOPY  0x4000000
 +#define MSG_FASTOPEN  0x20000000
-+#define MSG_CMSG_CLOEXEC 0x40000000
++#endif /* defined(_DEFAULT_SOURCE) || __MLIBC_XOPEN */
 +
 +#endif
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/socklen_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/socklen_t.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/socklen_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/socklen_t.h
 --- mlibc/sysdeps/nomos/include/abi-bits/socklen_t.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/socklen_t.h	2025-07-07 22:00:32.258603425 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/socklen_t.h	2025-12-08 15:37:43.640444290 +1300
 @@ -0,0 +1,6 @@
 +#ifndef _ABIBITS_SOCKLEN_T_H
 +#define _ABIBITS_SOCKLEN_T_H
@@ -2599,64 +3158,10 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +typedef unsigned socklen_t;
 +
 +#endif /* _ABIBITS_SOCKLEN_T_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/statfs.h mlibc-nomos/sysdeps/nomos/include/abi-bits/statfs.h
---- mlibc/sysdeps/nomos/include/abi-bits/statfs.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/statfs.h	2025-07-07 22:00:32.258664055 +1200
-@@ -0,0 +1,50 @@
-+#ifndef _ABIBITS_STATFS_H
-+#define _ABIBITS_STATFS_H
-+
-+#include <mlibc-config.h>
-+
-+#if !__MLIBC_LINUX_OPTION
-+#  error "statfs() is inherently Linux specific. Enable the Linux option or do not use this header."
-+#endif /* !__MLIBC_LINUX_OPTION */
-+
-+#include <abi-bits/fsblkcnt_t.h>
-+#include <abi-bits/fsfilcnt_t.h>
-+
-+typedef struct __mlibc_fsid {
-+	int __val[2];
-+} fsid_t;
-+
-+/* WARNING: keep `statfs` and `statfs64` in sync or bad things will happen! */
-+struct statfs {
-+	unsigned long f_type;
-+	unsigned long f_bsize;
-+	fsblkcnt_t f_blocks;
-+	fsblkcnt_t f_bfree;
-+	fsblkcnt_t f_bavail;
-+	fsfilcnt_t f_files;
-+	fsfilcnt_t f_ffree;
-+	fsid_t f_fsid;
-+	unsigned long f_namelen;
-+	unsigned long f_frsize;
-+	unsigned long f_flags;
-+	unsigned long __f_spare[4];
-+};
-+
-+/* WARNING: keep `statfs` and `statfs64` in sync or bad things will happen! */
-+struct statfs64 {
-+	unsigned long f_type;
-+	unsigned long f_bsize;
-+	fsblkcnt_t f_blocks;
-+	fsblkcnt_t f_bfree;
-+	fsblkcnt_t f_bavail;
-+	fsfilcnt_t f_files;
-+	fsfilcnt_t f_ffree;
-+	fsid_t f_fsid;
-+	unsigned long f_namelen;
-+	unsigned long f_frsize;
-+	unsigned long f_flags;
-+	unsigned long __f_spare[4];
-+};
-+
-+#endif /* _ABIBITS_STATFS_H */
-+
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/stat.h mlibc-nomos/sysdeps/nomos/include/abi-bits/stat.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/stat.h mlibc-nomos/sysdeps/nomos/include/abi-bits/stat.h
 --- mlibc/sysdeps/nomos/include/abi-bits/stat.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/stat.h	2025-07-07 22:00:32.258630185 +1200
-@@ -0,0 +1,148 @@
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/stat.h	2025-12-08 20:36:42.195854843 +1300
+@@ -0,0 +1,69 @@
 +#ifndef _ABIBITS_STAT_H
 +#define _ABIBITS_STAT_H
 +
@@ -2705,8 +3210,6 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +extern "C" {
 +#endif
 +
-+#if defined(__x86_64__)
-+
 +struct stat {
 +	dev_t st_dev;
 +	ino_t st_ino;
@@ -2714,7 +3217,6 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +	mode_t st_mode;
 +	uid_t st_uid;
 +	gid_t st_gid;
-+	unsigned int __pad0;
 +	dev_t st_rdev;
 +	off_t st_size;
 +	blksize_t st_blksize;
@@ -2722,95 +3224,21 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +	struct timespec st_atim;
 +	struct timespec st_mtim;
 +	struct timespec st_ctim;
-+	long __unused[3];
 +};
-+
-+#elif (defined(__riscv) && __riscv_xlen == 64) || defined (__aarch64__) || defined(__loongarch64)
-+
-+struct stat {
-+	dev_t st_dev;
-+	ino_t st_ino;
-+	mode_t st_mode;
-+	nlink_t st_nlink;
-+	uid_t st_uid;
-+	gid_t st_gid;
-+	dev_t st_rdev;
-+	dev_t __pad1;
-+	off_t st_size;
-+	blksize_t st_blksize;
-+	int __pad2;
-+	blkcnt_t st_blocks;
-+	struct timespec st_atim;
-+	struct timespec st_mtim;
-+	struct timespec st_ctim;
-+	int __pad3[2];
-+};
-+
-+#elif defined(__i386__)
-+
-+struct stat {
-+	dev_t st_dev;
-+	int __st_dev_padding;
-+	long __st_ino_truncated;
-+	mode_t st_mode;
-+	nlink_t st_nlink;
-+	uid_t st_uid;
-+	gid_t st_gid;
-+	dev_t st_rdev;
-+	int __st_rdev_padding;
-+	off_t st_size;
-+	blksize_t st_blksize;
-+	blkcnt_t st_blocks;
-+	struct {
-+		long tv_sec;
-+		long tv_nsec;
-+	} __st_atim32, __st_mtim32, __st_ctim32;
-+	ino_t st_ino;
-+
-+	/* These fields are not in the ABI. Their values are */
-+	/* copied from __st_atim32, __st_mtim32, __st_ctim32 */
-+	/* accordingly. */
-+
-+	struct timespec st_atim;
-+	struct timespec st_mtim;
-+	struct timespec st_ctim;
-+};
-+#elif defined (__m68k__)
-+
-+struct stat {
-+	dev_t st_dev;
-+	unsigned char __st_dev_padding[2];
-+	unsigned long __st_ino;
-+	mode_t st_mode;
-+	nlink_t st_nlink;
-+	uid_t st_uid;
-+	gid_t st_gid;
-+	dev_t st_rdev;
-+	unsigned char __st_rdev_padding;
-+	long long st_size; /* TODO: off64_t? */
-+	blksize_t st_blksize;
-+	blkcnt_t st_blocks;
-+	struct timespec st_atim;
-+	struct timespec st_mtim;
-+	struct timespec st_ctim;
-+	ino_t st_ino;
-+};
-+
-+#endif
-+
-+#define stat64 stat
 +
 +#ifdef __cplusplus
 +}
 +#endif
 +
 +#endif /* _ABIBITS_STAT_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/statvfs.h mlibc-nomos/sysdeps/nomos/include/abi-bits/statvfs.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/statvfs.h mlibc-nomos/sysdeps/nomos/include/abi-bits/statvfs.h
 --- mlibc/sysdeps/nomos/include/abi-bits/statvfs.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/statvfs.h	2025-07-07 22:00:32.258701036 +1200
-@@ -0,0 +1,52 @@
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/statvfs.h	2025-12-08 15:37:43.640536562 +1300
+@@ -0,0 +1,64 @@
 +#ifndef _ABIBITS_STATVFS_H
 +#define _ABIBITS_STATVFS_H
++
++#include <mlibc-config.h>
 +
 +#include <abi-bits/fsblkcnt_t.h>
 +#include <abi-bits/fsfilcnt_t.h>
@@ -2840,10 +3268,15 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +	fsfilcnt_t f_ffree;
 +	fsfilcnt_t f_favail;
 +	unsigned long f_fsid;
++#if __INTPTR_WIDTH__ == 32
++	int __f_unused;
++#endif
 +	unsigned long f_flag;
 +	unsigned long f_namemax;
++	unsigned int f_spare[6];
 +};
 +
++#if __MLIBC_LINUX_OPTION && defined(_LARGEFILE64_SOURCE)
 +/* WARNING: keep `statvfs` and `statvfs64` in sync or bad things will happen! */
 +struct statvfs64 {
 +	unsigned long f_bsize;
@@ -2855,15 +3288,20 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +	fsfilcnt_t f_ffree;
 +	fsfilcnt_t f_favail;
 +	unsigned long f_fsid;
++#if __INTPTR_WIDTH__ == 32
++	int __f_unused;
++#endif
 +	unsigned long f_flag;
 +	unsigned long f_namemax;
++	unsigned int f_spare[6];
 +};
++#endif /* __MLIBC_LINUX_OPTION && defined(_LARGEFILE64_SOURCE) */
 +
 +#endif /* _ABIBITS_STATVFS_H */
 +
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/statx.h mlibc-nomos/sysdeps/nomos/include/abi-bits/statx.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/statx.h mlibc-nomos/sysdeps/nomos/include/abi-bits/statx.h
 --- mlibc/sysdeps/nomos/include/abi-bits/statx.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/statx.h	2025-07-07 22:00:32.258738056 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/statx.h	2025-12-08 15:37:43.640565323 +1300
 @@ -0,0 +1,77 @@
 +#ifndef _ABIBITS_STATX_H
 +#define _ABIBITS_STATX_H
@@ -2942,9 +3380,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +};
 +
 +#endif
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/suseconds_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/suseconds_t.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/suseconds_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/suseconds_t.h
 --- mlibc/sysdeps/nomos/include/abi-bits/suseconds_t.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/suseconds_t.h	2025-07-07 22:00:32.258763947 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/suseconds_t.h	2025-12-08 15:37:43.640594653 +1300
 @@ -0,0 +1,8 @@
 +#ifndef _ABIBITS_SUSECONDS_T_H
 +#define _ABIBITS_SUSECONDS_T_H
@@ -2954,10 +3392,10 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/s
 +typedef long suseconds_t;
 +
 +#endif /* _ABIBITS_SUSECONDS_T_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/termios.h mlibc-nomos/sysdeps/nomos/include/abi-bits/termios.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/termios.h mlibc-nomos/sysdeps/nomos/include/abi-bits/termios.h
 --- mlibc/sysdeps/nomos/include/abi-bits/termios.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/termios.h	2025-07-07 22:00:32.258787927 +1200
-@@ -0,0 +1,155 @@
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/termios.h	2025-12-08 15:37:43.640632094 +1300
+@@ -0,0 +1,145 @@
 +#ifndef _ABIBITS_TERMIOS_H
 +#define _ABIBITS_TERMIOS_H
 +
@@ -3098,24 +3536,14 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/t
 +	tcflag_t c_lflag;
 +	cc_t c_line;
 +	cc_t c_cc[NCCS];
-+	speed_t ibaud;
-+	speed_t obaud;
-+};
-+
-+#define NCC 8
-+struct termio {
-+	unsigned short c_iflag;
-+	unsigned short c_oflag;
-+	unsigned short c_cflag;
-+	unsigned short c_lflag;
-+	unsigned char c_line;
-+	unsigned char c_cc[NCC];
++	speed_t c_ibaud;
++	speed_t c_obaud;
 +};
 +
 +#endif
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/time.h mlibc-nomos/sysdeps/nomos/include/abi-bits/time.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/time.h mlibc-nomos/sysdeps/nomos/include/abi-bits/time.h
 --- mlibc/sysdeps/nomos/include/abi-bits/time.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/time.h	2025-07-07 22:00:32.258811807 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/time.h	2025-12-08 15:37:43.640662614 +1300
 @@ -0,0 +1,15 @@
 +#ifndef _ABIBITS_TIME_H
 +#define _ABIBITS_TIME_H
@@ -3132,9 +3560,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/t
 +#define ITIMER_PROF	2
 +
 +#endif /* _ABIBITS_TIME_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/uid_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/uid_t.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/uid_t.h mlibc-nomos/sysdeps/nomos/include/abi-bits/uid_t.h
 --- mlibc/sysdeps/nomos/include/abi-bits/uid_t.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/uid_t.h	2025-07-07 22:00:32.258836377 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/uid_t.h	2025-12-08 15:37:43.640691625 +1300
 @@ -0,0 +1,8 @@
 +
 +#ifndef _ABIBITS_UID_T_H
@@ -3144,10 +3572,79 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/u
 +
 +#endif /* _ABIBITS_UID_T_H */
 +
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/utsname.h mlibc-nomos/sysdeps/nomos/include/abi-bits/utsname.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/utmp-defines.h mlibc-nomos/sysdeps/nomos/include/abi-bits/utmp-defines.h
+--- mlibc/sysdeps/nomos/include/abi-bits/utmp-defines.h	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/utmp-defines.h	2025-12-08 15:37:43.640720755 +1300
+@@ -0,0 +1,25 @@
++#ifndef _ABIBITS_UTMP_DEFINES_H
++#define _ABIBITS_UTMP_DEFINES_H
++
++#include <mlibc-config.h>
++
++#define EMPTY 0
++#define RUN_LVL 1
++#define BOOT_TIME 2
++#define NEW_TIME 3
++#define OLD_TIME 4
++#define INIT_PROCESS 5
++#define LOGIN_PROCESS 6
++#define USER_PROCESS 7
++#define DEAD_PROCESS 8
++
++#ifdef _GNU_SOURCE
++#define ACCOUNTING 9
++#endif
++
++#if __MLIBC_LINUX_OPTION
++#define UTMP_FILE "/var/run/utmp"
++#define WTMP_FILE "/var/log/wtmp"
++#endif /* __MLIBC_LINUX_OPTION */
++
++#endif /* _ABIBITS_UTMP_DEFINES_H */
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/utmpx.h mlibc-nomos/sysdeps/nomos/include/abi-bits/utmpx.h
+--- mlibc/sysdeps/nomos/include/abi-bits/utmpx.h	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/utmpx.h	2025-12-08 15:37:43.640749976 +1300
+@@ -0,0 +1,36 @@
++#ifndef _ABIBITS_UTMPX_H
++#define _ABIBITS_UTMPX_H
++
++#include <abi-bits/pid_t.h>
++#include <bits/posix/timeval.h>
++
++#define __UT_HOSTSIZE 256
++#define __UT_NAMESIZE 32
++#define __UT_LINESIZE 32
++
++/* Struct definition taken from musl */
++struct utmpx {
++	short ut_type;
++	short __ut_pad1;
++	pid_t ut_pid;
++	char ut_line[__UT_LINESIZE];
++	char ut_id[4];
++	char ut_user[__UT_NAMESIZE];
++	char ut_host[__UT_HOSTSIZE];
++	struct {
++		short __e_termination;
++		short __e_exit;
++	} ut_exit;
++	int ut_session, __ut_pad2;
++	struct timeval ut_tv;
++	unsigned ut_addr_v6[4];
++	char __unused[20];
++};
++
++#define e_exit __e_exit
++#define e_termination __e_termination
++
++#define UTMPX_FILE "/var/run/utmp"
++#define WTMPX_FILE "/var/log/wtmp"
++
++#endif /* _ABIBITS_UTMPX_H */
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/utsname.h mlibc-nomos/sysdeps/nomos/include/abi-bits/utsname.h
 --- mlibc/sysdeps/nomos/include/abi-bits/utsname.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/utsname.h	2025-07-07 22:00:32.258859728 +1200
-@@ -0,0 +1,13 @@
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/utsname.h	2025-12-08 15:37:43.640779176 +1300
+@@ -0,0 +1,17 @@
 +#ifndef _ABIBITS_UTSNAME_T_H
 +#define _ABIBITS_UTSNAME_T_H
 +
@@ -3157,14 +3654,18 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/u
 +	char release[65];
 +	char version[65];
 +	char machine[65];
++#if defined(_GNU_SOURCE)
 +	char domainname[65];
++#else
++	char __domainname[65];
++#endif
 +};
 +
 +#endif /* _ABIBITS_UTSNAME_T_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/vm-flags.h mlibc-nomos/sysdeps/nomos/include/abi-bits/vm-flags.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/vm-flags.h mlibc-nomos/sysdeps/nomos/include/abi-bits/vm-flags.h
 --- mlibc/sysdeps/nomos/include/abi-bits/vm-flags.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/vm-flags.h	2025-07-07 22:00:32.258882788 +1200
-@@ -0,0 +1,81 @@
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/vm-flags.h	2025-12-08 15:37:43.640808527 +1300
+@@ -0,0 +1,85 @@
 +#ifndef _ABIBITS_VM_FLAGS_H
 +#define _ABIBITS_VM_FLAGS_H
 +
@@ -3214,6 +3715,7 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/v
 +
 +#if __MLIBC_LINUX_OPTION
 +
++#if defined(_DEFAULT_SOURCE)
 +#define MADV_NORMAL 0
 +#define MADV_RANDOM 1
 +#define MADV_SEQUENTIAL 2
@@ -3235,20 +3737,23 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/v
 +#define MADV_PAGEOUT 21
 +#define MADV_HWPOISON 100
 +#define MADV_SOFT_OFFLINE 101
++#endif /* defined(_DEFAULT_SOURCE) */
 +
++#if defined(_GNU_SOURCE)
 +#define MREMAP_MAYMOVE 1
 +#define MREMAP_FIXED 2
 +
 +#define MFD_CLOEXEC 1U
 +#define MFD_ALLOW_SEALING 2U
 +#define MFD_HUGETLB 4U
++#endif /* defined(_GNU_SOURCE) */
 +
 +#endif /* __MLIBC_LINUX_OPTION */
 +
 +#endif /* _ABIBITS_VM_FLAGS_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/vt.h mlibc-nomos/sysdeps/nomos/include/abi-bits/vt.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/vt.h mlibc-nomos/sysdeps/nomos/include/abi-bits/vt.h
 --- mlibc/sysdeps/nomos/include/abi-bits/vt.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/vt.h	2025-07-07 22:00:32.258906268 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/vt.h	2025-12-08 15:37:43.640837867 +1300
 @@ -0,0 +1,82 @@
 +#ifndef _ABIBITS_VT_H
 +#define _ABIBITS_VT_H
@@ -3332,9 +3837,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/v
 +};
 +
 +#endif /* _ABIBITS_VT_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/wait.h mlibc-nomos/sysdeps/nomos/include/abi-bits/wait.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/wait.h mlibc-nomos/sysdeps/nomos/include/abi-bits/wait.h
 --- mlibc/sysdeps/nomos/include/abi-bits/wait.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/wait.h	2025-07-07 22:00:32.258930398 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/wait.h	2025-12-08 15:37:43.640866788 +1300
 @@ -0,0 +1,34 @@
 +#ifndef _ABIBITS_WAIT_H
 +#define _ABIBITS_WAIT_H
@@ -3370,9 +3875,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/w
 +#define W_EXITCODE(ret, sig) (((ret) << 8) | (sig))
 +
 +#endif /*_ABIBITS_WAIT_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/xattr.h mlibc-nomos/sysdeps/nomos/include/abi-bits/xattr.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/xattr.h mlibc-nomos/sysdeps/nomos/include/abi-bits/xattr.h
 --- mlibc/sysdeps/nomos/include/abi-bits/xattr.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/xattr.h	2025-07-07 22:00:32.258953729 +1200
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/xattr.h	2025-12-08 15:37:43.640895778 +1300
 @@ -0,0 +1,27 @@
 +#ifndef MLIBC_ABIS_LINUX_XATTR_H
 +#define MLIBC_ABIS_LINUX_XATTR_H
@@ -3401,9 +3906,9 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/x
 +#endif
 +
 +#endif /* MLIBC_ABIS_LINUX_XATTR_H */
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/asm/ioctls.h mlibc-nomos/sysdeps/nomos/include/asm/ioctls.h
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/asm/ioctls.h mlibc-nomos/sysdeps/nomos/include/asm/ioctls.h
 --- mlibc/sysdeps/nomos/include/asm/ioctls.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/asm/ioctls.h	2025-07-18 11:00:16.615219928 +1200
++++ mlibc-nomos/sysdeps/nomos/include/asm/ioctls.h	2025-12-08 14:38:15.126115839 +1300
 @@ -0,0 +1,25 @@
 +#ifndef _ASM_IOCTLS_H
 +#define _ASM_IOCTLS_H
@@ -3429,11 +3934,60 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/asm/ioctls
 +#define TIOCGWINSZ      0x5413
 +#define TIOCSWINSZ      0x5414
 +
++#endif /* _ASM_IOCTLS_H */
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/mntent.h mlibc-nomos/sysdeps/nomos/include/mntent.h
+--- mlibc/sysdeps/nomos/include/mntent.h	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/include/mntent.h	2025-12-08 14:38:15.127649557 +1300
+@@ -0,0 +1,44 @@
++#ifndef _MNTENT_H
++#define _MNTENT_H
++
++#include <paths.h>
++#include <stdio.h>
++
++#define MOUNTED _PATH_MOUNTED
++
++#define MNTOPT_DEFAULTS "defaults"		/* Use all default options. */
++#define MNTOPT_RO       "ro"			/* Read only. */
++#define MNTOPT_RW       "rw"			/* Read/write. */
++#define MNTOPT_SUID     "suid"			/* Set uid allowed. */
++#define MNTOPT_NOSUID   "nosuid"		/* No set uid allowed. */
++#define MNTOPT_NOAUTO   "noauto"		/* Do not auto mount . */
++
++#ifdef __cplusplus
++extern "C" {
 +#endif
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/nomos/syscall.h mlibc-nomos/sysdeps/nomos/include/nomos/syscall.h
++
++struct mntent {
++    char *mnt_fsname;
++    char *mnt_dir;
++    char *mnt_type;
++    char *mnt_opts;
++    int mnt_freq;
++    int mnt_passno;
++};
++
++#ifndef __MLIBC_ABI_ONLY
++
++FILE *setmntent(const char *__filename, const char *__type);
++struct mntent *getmntent(FILE *__f);
++int addmntent(FILE *__f, const struct mntent *__mnt);
++int endmntent(FILE *__f);
++char *hasmntopt(const struct mntent *__mnt, const char *__opt);
++struct mntent *getmntent_r(FILE *__f, struct mntent *__mnt, char *__linebuf, int __buflen);
++
++#endif /* !__MLIBC_ABI_ONLY */
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* _MNTENT_H */
+\ No newline at end of file
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/nomos/syscall.h mlibc-nomos/sysdeps/nomos/include/nomos/syscall.h
 --- mlibc/sysdeps/nomos/include/nomos/syscall.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/nomos/syscall.h	2025-07-29 16:51:40.034431909 +1200
-@@ -0,0 +1,49 @@
++++ mlibc-nomos/sysdeps/nomos/include/nomos/syscall.h	2025-12-09 18:21:27.960623682 +1300
+@@ -0,0 +1,72 @@
 +#ifndef _NOMOS__SYSCALL_H_
 +#define _NOMOS__SYSCALL_H_
 +
@@ -3461,6 +4015,29 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/nomos/sysc
 +#define SYSCALL_SETPGID     18
 +#define SYSCALL_SETSID      19
 +#define SYSCALL_FORK        20
++#define SYSCALL_SIGACTION   21
++#define SYSCALL_SIGRETURN   22
++#define SYSCALL_KILL        23
++#define SYSCALL_SIGPROCMASK 24
++#define SYSCALL_EXECVE      25
++#define SYSCALL_WAITPID     26
++#define SYSCALL_GETDENTS    27
++#define SYSCALL_CHDIR       28
++#define SYSCALL_FCHDIR      29
++#define SYSCALL_GETRESUID   30
++#define SYSCALL_GETRESGID   31
++#define SYSCALL_SETRESUID   32
++#define SYSCALL_SETRESGID   33
++#define SYSCALL_YIELD       34
++#define SYSCALL_GETCWD      35
++#define SYSCALL_FCNTL       36
++#define SYSCALL_STAT        37
++#define SYSCALL_ACCESS      38
++#define SYSCALL_READLINK    39
++#define SYSCALL_UNAME       40
++#define SYSCALL_PIPE        41
++#define SYSCALL_UNLINK      42
++#define SYSCALL_PPOLL       43
 +
 +#ifndef __MLIBC_ABI_ONLY
 +
@@ -3480,13 +4057,40 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/include/nomos/sysc
 +    return ret;
 +}
 +
++#endif /* __MLIBC_ABI_ONLY */
++
++#endif /* _NOMOS__SYSCALL_H_ */
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/sys/mount.h mlibc-nomos/sysdeps/nomos/include/sys/mount.h
+--- mlibc/sysdeps/nomos/include/sys/mount.h	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/include/sys/mount.h	2025-12-08 14:38:15.126065478 +1300
+@@ -0,0 +1,22 @@
++#ifndef _SYS_MOUNT_H
++#define _SYS_MOUNT_H
++
++#ifdef __cplusplus
++extern "C" {
 +#endif
 +
++#define MNT_FORCE 1  /* Force unmounting. */
++
++#ifndef __MLIBC_ABI_ONLY
++
++int mount(const char *__source, const char *__target, const char *__filesystemtype, unsigned long __mountflags, const void *__data);
++int umount(const char *__target);
++int umount2(const char *__target, int __flags);
++
++#endif /* !__MLIBC_ABI_ONLY */
++
++#ifdef __cplusplus
++}
 +#endif
-diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/meson.build mlibc-nomos/sysdeps/nomos/meson.build
++
++#endif /* _SYS_MOUNT_H */
+\ No newline at end of file
+diff -urN --no-dereference mlibc/sysdeps/nomos/meson.build mlibc-nomos/sysdeps/nomos/meson.build
 --- mlibc/sysdeps/nomos/meson.build	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/meson.build	2025-07-13 23:46:00.688142610 +1200
-@@ -0,0 +1,106 @@
++++ mlibc-nomos/sysdeps/nomos/meson.build	2025-12-08 15:40:51.260379459 +1300
+@@ -0,0 +1,131 @@
 +sysdep_supported_options = {
 +  'posix': true,
 +  'linux': false,
@@ -3500,62 +4104,71 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/meson.build mlibc-
 +
 +libc_sources += files(
 +  'generic/entry.cpp',
-+  'generic/generic.cpp'
++  'generic/generic.cpp',
++  'generic/mntent.cpp',
++  'generic/mount.cpp'
 +)
 +
 +if not no_headers
 +  install_headers(
 +    'include/abi-bits/auxv.h',
-+    'include/abi-bits/seek-whence.h',
-+    'include/abi-bits/vm-flags.h',
-+    'include/abi-bits/errno.h',
-+    'include/abi-bits/fcntl.h',
-+    'include/abi-bits/in.h',
-+    'include/abi-bits/stat.h',
-+    'include/abi-bits/statx.h',
-+    'include/abi-bits/signal.h',
-+    'include/abi-bits/reboot.h',
-+    'include/abi-bits/resource.h',
-+    'include/abi-bits/socket.h',
-+    'include/abi-bits/termios.h',
-+    'include/abi-bits/time.h',
-+    'include/abi-bits/blkcnt_t.h',
-+    'include/abi-bits/blksize_t.h',
-+    'include/abi-bits/dev_t.h',
-+    'include/abi-bits/gid_t.h',
-+    'include/abi-bits/ino_t.h',
-+    'include/abi-bits/mode_t.h',
-+    'include/abi-bits/nlink_t.h',
-+    'include/abi-bits/pid_t.h',
-+    'include/abi-bits/uid_t.h',
-+    'include/abi-bits/access.h',
-+    'include/abi-bits/wait.h',
-+    'include/abi-bits/limits.h',
-+    'include/abi-bits/utsname.h',
-+    'include/abi-bits/ptrace.h',
-+    'include/abi-bits/vt.h',
-+    'include/abi-bits/ptrace.h',
-+    'include/abi-bits/poll.h',
-+    'include/abi-bits/epoll.h',
-+    'include/abi-bits/packet.h',
-+    'include/abi-bits/inotify.h',
-+    'include/abi-bits/clockid_t.h',
-+    'include/abi-bits/ipc.h',
-+    'include/abi-bits/shm.h',
-+    'include/abi-bits/mqueue.h',
-+    'include/abi-bits/suseconds_t.h',
-+    'include/abi-bits/fsfilcnt_t.h',
-+    'include/abi-bits/fsblkcnt_t.h',
-+    'include/abi-bits/socklen_t.h',
-+    'include/abi-bits/statfs.h',
-+    'include/abi-bits/statvfs.h',
-+    'include/abi-bits/ioctls.h',
-+    'include/abi-bits/xattr.h',
-+    'include/abi-bits/msg.h',
-+    'include/abi-bits/random.h',
-+    'include/abi-bits/rlim_t.h',
-+    'include/abi-bits/sigval.h',
-+    'include/abi-bits/sigevent.h',
++		'include/abi-bits/seek-whence.h',
++		'include/abi-bits/vm-flags.h',
++		'include/abi-bits/errno.h',
++		'include/abi-bits/fcntl.h',
++		'include/abi-bits/in.h',
++		'include/abi-bits/stat.h',
++		'include/abi-bits/statx.h',
++		'include/abi-bits/signal.h',
++		'include/abi-bits/reboot.h',
++		'include/abi-bits/resource.h',
++		'include/abi-bits/socket.h',
++		'include/abi-bits/termios.h',
++		'include/abi-bits/time.h',
++		'include/abi-bits/blkcnt_t.h',
++		'include/abi-bits/blksize_t.h',
++		'include/abi-bits/dev_t.h',
++		'include/abi-bits/gid_t.h',
++		'include/abi-bits/ino_t.h',
++		'include/abi-bits/mode_t.h',
++		'include/abi-bits/nlink_t.h',
++		'include/abi-bits/pid_t.h',
++		'include/abi-bits/uid_t.h',
++		'include/abi-bits/access.h',
++		'include/abi-bits/wait.h',
++		'include/abi-bits/limits.h',
++		'include/abi-bits/utsname.h',
++		'include/abi-bits/ptrace.h',
++		'include/abi-bits/vt.h',
++		'include/abi-bits/ptrace.h',
++		'include/abi-bits/poll.h',
++		'include/abi-bits/epoll.h',
++		'include/abi-bits/packet.h',
++		'include/abi-bits/inotify.h',
++		'include/abi-bits/clockid_t.h',
++		'include/abi-bits/ipc.h',
++		'include/abi-bits/shm.h',
++		'include/abi-bits/mqueue.h',
++		'include/abi-bits/suseconds_t.h',
++		'include/abi-bits/fsfilcnt_t.h',
++		'include/abi-bits/fsblkcnt_t.h',
++		'include/abi-bits/socklen_t.h',
++		'include/abi-bits/statvfs.h',
++		'include/abi-bits/ioctls.h',
++		'include/abi-bits/xattr.h',
++		'include/abi-bits/msg.h',
++		'include/abi-bits/random.h',
++		'include/abi-bits/rlim_t.h',
++		'include/abi-bits/sigval.h',
++		'include/abi-bits/sigevent.h',
++		'include/abi-bits/utmpx.h',
++		'include/abi-bits/utmp-defines.h',
++		'include/abi-bits/fd_set.h',
++		'include/abi-bits/sem.h',
++		'include/abi-bits/route.h',
++		'include/abi-bits/sa_family_t.h',
++		'include/abi-bits/sockaddr_storage.h',
++		'include/abi-bits/sig-limits.h',
 +    subdir: 'abi-bits',
 +    follow_symlinks: true
 +  )
@@ -3563,33 +4176,49 @@ diff '--color=auto' -urN --no-dereference mlibc/sysdeps/nomos/meson.build mlibc-
 +    'include/asm/ioctls.h',
 +    subdir: 'asm'
 +  )
++  install_headers(
++    'include/sys/mount.h',
++    subdir: 'sys'
++  )
++  install_headers(
++    'include/mntent.h'
++  )
 +endif
 +
 +if not headers_only
-+  crt = custom_target('crt0',
-+    build_by_default: true,
-+    command: c_compiler.cmd_array() + ['-c', '-o', '@OUTPUT@', '@INPUT@'],
-+    input: 'crt-' + host_machine.cpu_family() / 'crt0.S',
-+    output: 'crt0.o',
-+    install: true,
-+    install_dir: get_option('libdir')
-+  )
++  crt = custom_target(
++		build_by_default: true,
++		command: c_compiler.cmd_array() + ['-c', '-o', '@OUTPUT@', '@INPUT@'],
++		input: files('crt-' + host_machine.cpu_family() / 'crt1.S'),
++		output: 'crt1.o',
++		install: true,
++		install_dir: get_option('libdir')
++	)
 +
-+  custom_target('crti',
-+    build_by_default: true,
-+    command: c_compiler.cmd_array() + ['-c', '-o', '@OUTPUT@', '@INPUT@'],
-+    input: 'crt-' + host_machine.cpu_family() / 'crti.S',
-+    output: 'crti.o',
-+    install: true,
-+    install_dir: get_option('libdir')
-+  )
++	crt_pie = custom_target(
++		build_by_default: true,
++		command: c_compiler.cmd_array() + ['-c', '-o', '@OUTPUT@', '@INPUT@'],
++		input: files('crt-' + host_machine.cpu_family() / 'Scrt1.S'),
++		output: 'Scrt1.o',
++		install: true,
++		install_dir: get_option('libdir')
++	)
 +
-+  custom_target('crtn',
-+    build_by_default: true,
-+    command: c_compiler.cmd_array() + ['-c', '-o', '@OUTPUT@', '@INPUT@'],
-+    input: 'crt-' + host_machine.cpu_family() / 'crtn.S',
-+    output: 'crtn.o',
-+    install: true,
-+    install_dir: get_option('libdir')
-+  )
++	custom_target(
++		build_by_default: true,
++		command: c_compiler.cmd_array() + ['-c', '-o', '@OUTPUT@', '@INPUT@'],
++		input: files('crt-' + host_machine.cpu_family() / 'crti.S'),
++		output: 'crti.o',
++		install: true,
++		install_dir: get_option('libdir')
++	)
++
++	custom_target(
++		build_by_default: true,
++		command: c_compiler.cmd_array() + ['-c', '-o', '@OUTPUT@', '@INPUT@'],
++		input: files('crt-' + host_machine.cpu_family() / 'crtn.S'),
++		output: 'crtn.o',
++		install: true,
++		install_dir: get_option('libdir')
++	)
 +endif

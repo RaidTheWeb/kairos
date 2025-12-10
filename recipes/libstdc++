@@ -1,0 +1,36 @@
+#! /bin/sh
+
+name=libstdc++
+from_source=gcc-host
+clean_workdirs=no
+skip_pkg_check=yes
+revision=1
+hostdeps="gcc pkg-config"
+imagedeps="build-essential"
+deps="mlibc libgcc"
+
+build() {
+    cd "${build_dir}/host-builds/gcc/build"
+
+    make -j${parallelism} all-target-libstdc++-v3
+}
+
+package() {
+    cd "${build_dir}/host-builds/gcc/build"
+
+    rm -rf tmp_libstdc++_dir
+    mkdir tmp_libstdc++_dir
+
+    # Install libstdc++ to the tmp_libstdc++_dir directory (realpath is needed for DESTDIR to work properly)
+    DESTDIR="$(realpath tmp_libstdc++_dir)" make install-target-libstdc++-v3
+
+    rm -fv tmp_libstdc++_dir/usr/local/${OS_TRIPLET}/lib/libgcc*
+
+    mkdir -p "${dest_dir}${prefix}"
+
+    cp -r tmp_libstdc++_dir/usr/local/share "${dest_dir}${prefix}"/
+    cp -r tmp_libstdc++_dir/usr/local/${OS_TRIPLET}/* "${dest_dir}${prefix}"/
+
+    mkdir -p "${build_dir}"/host-pkgs/gcc/usr/local/${OS_TRIPLET}
+    cp -r tmp_libstdc++_dir/usr/local/${OS_TRIPLET}/* "${build_dir}"/host-pkgs/gcc/usr/local/${OS_TRIPLET}/
+}

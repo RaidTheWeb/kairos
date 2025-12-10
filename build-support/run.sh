@@ -4,7 +4,7 @@ if [ -z "$ARCH" ]; then
     ARCH=x86_64
 fi
 
-INT_FLAGS="-m 2G"
+INT_FLAGS="-m 4G"
 INT_FLAGS=${INT_FLAGS} ${QEMU_FLAGS}
 qemu_flags=${INT_FLAGS}
 
@@ -17,7 +17,7 @@ if ! [ -z "$DEBUG" ]; then
     echo "Debugging..."
     qemu_flags="${qemu_flags} -s -S"
 
-    kitty -e gdb sysroot/usr/share/nomos/nomos -ex 'target remote :1234' -x 'build-support/gdbinit' &
+    kitty -e gdb sysroot/usr/share/nomos/nomos -ex 'target remote :1234' -x '../build-support/gdbinit' &
 fi
 
 
