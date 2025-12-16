@@ -1,0 +1,34 @@
+#! /bin/sh
+
+name=libintl
+from_source=gettext
+revision=1
+hostdeps="gcc pkg-config"
+deps="mlibc libgcc libstdc++ libatomic libiconv"
+
+configure() {
+    autotools_configure \
+        --without-emacs \
+        --without-lispdir \
+        --enable-nls \
+        --with-included-gettext \
+        --disable-c++ \
+        --disable-libasprintf \
+        --disable-java \
+        --enable-threads=posix \
+        --disable-curses \
+        --without-git \
+        --without-cvs \
+        --without-bzip2 \
+        --without-xz
+
+    sed -i 's/touch $@//g' gettext-runtime/intl/Makefile
+}
+
+build() {
+    make -C gettext-runtime/intl -j${parallelism}
+}
+
+package() {
+    DESTDIR="${dest_dir}" make -C gettext-runtime/intl install
+}

@@ -15,7 +15,7 @@ fi
 
 if ! [ -z "$DEBUG" ]; then
     echo "Debugging..."
-    qemu_flags="${qemu_flags} -s -S"
+    qemu_flags="${qemu_flags} -s -S -d int"
 
     kitty -e gdb sysroot/usr/share/nomos/nomos -ex 'target remote :1234' -x '../build-support/gdbinit' &
 fi

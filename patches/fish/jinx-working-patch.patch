@@ -1,6 +1,6 @@
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/builtin_fg.cpp fish-3.0.2-workdir/src/builtin_fg.cpp
 --- fish-3.0.2-clean/src/builtin_fg.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/builtin_fg.cpp	2025-12-09 02:35:44.982603724 +1300
++++ fish-3.0.2-workdir/src/builtin_fg.cpp	2025-12-09 02:50:31.405833962 +1300
 @@ -98,7 +98,7 @@
      } else {
          // If we aren't redirecting, send output to real stderr, since stuff in sb_err won't get
@@ -12,7 +12,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/builtin_fg.cpp fi
      const wcstring ft = tok_first(j->command());
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/builtin_history.cpp fish-3.0.2-workdir/src/builtin_history.cpp
 --- fish-3.0.2-clean/src/builtin_history.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/builtin_history.cpp	2025-12-09 02:35:17.467153521 +1300
++++ fish-3.0.2-workdir/src/builtin_history.cpp	2025-12-09 02:50:31.405833962 +1300
 @@ -66,7 +66,7 @@
          wchar_t err_text[1024];
          const wchar_t *subcmd_str1 = enum_to_str(*hist_cmd, hist_enum_map);
@@ -24,7 +24,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/builtin_history.c
          streams.err.append_format(BUILTIN_ERR_COMBO2, cmd, err_text);
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/builtin_status.cpp fish-3.0.2-workdir/src/builtin_status.cpp
 --- fish-3.0.2-clean/src/builtin_status.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/builtin_status.cpp	2025-12-09 02:35:17.471184351 +1300
++++ fish-3.0.2-workdir/src/builtin_status.cpp	2025-12-09 02:50:31.405833962 +1300
 @@ -127,7 +127,7 @@
          wchar_t err_text[1024];
          const wchar_t *subcmd_str1 = enum_to_str(opts.status_cmd, status_enum_map);
@@ -36,7 +36,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/builtin_status.cp
          streams.err.append_format(BUILTIN_ERR_COMBO2, cmd, err_text);
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/common.cpp fish-3.0.2-workdir/src/common.cpp
 --- fish-3.0.2-clean/src/common.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/common.cpp	2025-12-09 02:33:08.125719040 +1300
++++ fish-3.0.2-workdir/src/common.cpp	2025-12-09 02:50:31.399753797 +1300
 @@ -165,12 +165,12 @@
              int status = -1;
              if (info.dli_sname[0] == '_')
@@ -85,18 +85,18 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/common.cpp fish-3
 +    return result;
 +}
 +
-+/// Narrow-based vswprintf replacement  
++/// Narrow-based vswprintf replacement
 +int fish_vswprintf_impl(wchar_t *buf, size_t size, const wchar_t *format, va_list ap) {
 +    if (!buf || size == 0) return -1;
-+    
++
 +    // Convert format string from wide to narrow
 +    std::string narrow_format = wcs2string(format);
-+    
++
 +    // Create a temporary narrow buffer (larger to account for multibyte sequences)
 +    size_t nbuf_size = size * MB_CUR_MAX + 1;
 +    std::vector<char> nbuf(nbuf_size);
 +    int result = vsnprintf(nbuf.data(), nbuf_size, narrow_format.c_str(), ap);
-+    
++
 +    // Convert result back to wide string
 +    if (result >= 0) {
 +        wcstring wide_result = str2wcstring(nbuf.data());
@@ -105,7 +105,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/common.cpp fish-3
 +        buf[copy_len] = L'\0';
 +        return copy_len;
 +    }
-+    
++
 +    return result;
 +}
 +
@@ -122,7 +122,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/common.cpp fish-3
 +int fish_vfwprintf_impl(FILE *stream, const wchar_t *format, va_list ap) {
 +    // Convert format string from wide to narrow
 +    std::string narrow_format = wcs2string(format);
-+    
++
 +    // Use vfprintf with the narrow format
 +    return vfprintf(stream, narrow_format.c_str(), ap);
 +}
@@ -155,13 +155,13 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/common.cpp fish-3
 +wint_t fish_fgetwc_impl(FILE *stream) {
 +    char c = fgetc(stream);
 +    if (c == EOF) return WEOF;
-+    
++
 +    mbstate_t state = {};
 +    memset(&state, 0, sizeof(state));
 +    wchar_t wc;
 +    char buf[MB_LEN_MAX];
 +    buf[0] = c;
-+    
++
 +    size_t len = mbrtowc(&wc, buf, 1, &state);
 +    if (len == (size_t)-2) {
 +        // Incomplete multibyte sequence, read more bytes
@@ -174,7 +174,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/common.cpp fish-3
 +            if (len != (size_t)-2) break;
 +        }
 +    }
-+    
++
 +    if (len == (size_t)-1 || len == 0) {
 +        return (wint_t)(unsigned char)c;
 +    }
@@ -239,7 +239,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/common.cpp fish-3
  #ifdef HAVE_WINSIZE
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/common.h fish-3.0.2-workdir/src/common.h
 --- fish-3.0.2-clean/src/common.h	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/common.h	2025-12-09 02:32:11.600598239 +1300
++++ fish-3.0.2-workdir/src/common.h	2025-12-09 02:50:31.398944155 +1300
 @@ -344,6 +344,34 @@
  char *wcs2str(const wcstring &in);
  std::string wcs2string(const wcstring &input);
@@ -249,7 +249,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/common.h fish-3.0
 +
 +/// Narrow-based replacements for wide stdio functions
 +
-+// For swprintf replacement - write formatted wide string using narrow snprintf  
++// For swprintf replacement - write formatted wide string using narrow snprintf
 +#define FISH_SWPRINTF(buf, size, ...) fish_swprintf_impl((buf), (size), __VA_ARGS__)
 +int fish_swprintf_impl(wchar_t *buf, size_t size, const wchar_t *format, ...);
 +
@@ -257,7 +257,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/common.h fish-3.0
 +#define FISH_FWPRINTF(stream, ...) fish_fwprintf_impl((stream), __VA_ARGS__)
 +int fish_fwprintf_impl(FILE *stream, const wchar_t *format, ...);
 +
-+// For vfwprintf replacement 
++// For vfwprintf replacement
 +int fish_vfwprintf_impl(FILE *stream, const wchar_t *format, va_list ap);
 +
 +// For vswprintf replacement
@@ -277,7 +277,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/common.h fish-3.0
  bool string_prefixes_string(const wchar_t *proposed_prefix, const wcstring &value);
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/event.cpp fish-3.0.2-workdir/src/event.cpp
 --- fish-3.0.2-clean/src/event.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/event.cpp	2025-12-09 02:35:17.478807636 +1300
++++ fish-3.0.2-workdir/src/event.cpp	2025-12-09 02:50:31.405833962 +1300
 @@ -164,11 +164,11 @@
  
  #if 0
@@ -294,7 +294,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/event.cpp fish-3.
  #endif
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/fish.cpp fish-3.0.2-workdir/src/fish.cpp
 --- fish-3.0.2-clean/src/fish.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/fish.cpp	2025-12-09 02:36:09.860501791 +1300
++++ fish-3.0.2-workdir/src/fish.cpp	2025-12-09 02:50:31.405833962 +1300
 @@ -255,7 +255,7 @@
                  if (tmp >= 0 && tmp <= 10 && !*end && !errno) {
                      debug_level = (int)tmp;
@@ -324,7 +324,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/fish.cpp fish-3.0
                  break;
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/fish_indent.cpp fish-3.0.2-workdir/src/fish_indent.cpp
 --- fish-3.0.2-clean/src/fish_indent.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/fish_indent.cpp	2025-12-09 02:35:45.071786605 +1300
++++ fish-3.0.2-workdir/src/fish_indent.cpp	2025-12-09 02:50:31.405833962 +1300
 @@ -52,7 +52,7 @@
  static wcstring read_file(FILE *f) {
      wcstring result;
@@ -426,7 +426,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/fish_indent.cpp f
  }
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/fish_key_reader.cpp fish-3.0.2-workdir/src/fish_key_reader.cpp
 --- fish-3.0.2-clean/src/fish_key_reader.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/fish_key_reader.cpp	2025-12-09 02:34:37.718900539 +1300
++++ fish-3.0.2-workdir/src/fish_key_reader.cpp	2025-12-09 02:50:31.399975491 +1300
 @@ -54,12 +54,12 @@
      recent_chars[3] = c;
      if (c == shell_modes.c_cc[VINTR]) {
@@ -634,7 +634,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/fish_key_reader.c
  
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/fish_tests.cpp fish-3.0.2-workdir/src/fish_tests.cpp
 --- fish-3.0.2-clean/src/fish_tests.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/fish_tests.cpp	2025-12-09 02:41:23.239011349 +1300
++++ fish-3.0.2-workdir/src/fish_tests.cpp	2025-12-09 02:50:31.405833962 +1300
 @@ -110,9 +110,9 @@
  static void say(const wchar_t *fmt, ...) {
      va_list va;
@@ -829,7 +829,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/fish_tests.cpp fi
          }
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/input_common.cpp fish-3.0.2-workdir/src/input_common.cpp
 --- fish-3.0.2-clean/src/input_common.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/input_common.cpp	2025-12-09 02:37:08.274913095 +1300
++++ fish-3.0.2-workdir/src/input_common.cpp	2025-12-09 02:50:31.405833962 +1300
 @@ -167,7 +167,7 @@
  
      long tmp = fish_wcstol(escape_time_ms->as_string().c_str());
@@ -841,7 +841,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/input_common.cpp 
                   escape_time_ms->as_string().c_str());
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/io.cpp fish-3.0.2-workdir/src/io.cpp
 --- fish-3.0.2-clean/src/io.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/io.cpp	2025-12-09 02:38:46.786001896 +1300
++++ fish-3.0.2-workdir/src/io.cpp	2025-12-09 02:50:31.405833962 +1300
 @@ -15,19 +15,19 @@
  
  io_data_t::~io_data_t() = default;
@@ -895,7 +895,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/io.cpp fish-3.0.2
      }
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/iothread.cpp fish-3.0.2-workdir/src/iothread.cpp
 --- fish-3.0.2-clean/src/iothread.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/iothread.cpp	2025-12-09 02:37:08.277021527 +1300
++++ fish-3.0.2-workdir/src/iothread.cpp	2025-12-09 02:50:31.405833962 +1300
 @@ -254,7 +254,7 @@
      }
  #if TIME_DRAIN
@@ -907,7 +907,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/iothread.cpp fish
  }
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/output.cpp fish-3.0.2-workdir/src/output.cpp
 --- fish-3.0.2-clean/src/output.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/output.cpp	2025-12-09 02:35:44.981320575 +1300
++++ fish-3.0.2-workdir/src/output.cpp	2025-12-09 02:50:31.405833962 +1300
 @@ -542,7 +542,7 @@
  
  #if 0
@@ -919,7 +919,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/output.cpp fish-3
  
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/parse_execution.cpp fish-3.0.2-workdir/src/parse_execution.cpp
 --- fish-3.0.2-clean/src/parse_execution.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/parse_execution.cpp	2025-12-09 02:35:17.471680279 +1300
++++ fish-3.0.2-workdir/src/parse_execution.cpp	2025-12-09 02:50:31.405833962 +1300
 @@ -626,7 +626,7 @@
  
          // Print it.
@@ -931,7 +931,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/parse_execution.c
      return parse_execution_errored;
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/parser.cpp fish-3.0.2-workdir/src/parser.cpp
 --- fish-3.0.2-clean/src/parser.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/parser.cpp	2025-12-09 02:34:59.753458428 +1300
++++ fish-3.0.2-workdir/src/parser.cpp	2025-12-09 02:50:31.405833962 +1300
 @@ -279,19 +279,19 @@
              continue;
          }
@@ -975,7 +975,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/parser.cpp fish-3
      this->eval(ps, io, block_type);
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/parse_tree.cpp fish-3.0.2-workdir/src/parse_tree.cpp
 --- fish-3.0.2-clean/src/parse_tree.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/parse_tree.cpp	2025-12-09 02:39:40.254561619 +1300
++++ fish-3.0.2-workdir/src/parse_tree.cpp	2025-12-09 02:50:31.405833962 +1300
 @@ -407,17 +407,17 @@
          bool logit = false;
          if (logit) {
@@ -1011,7 +1011,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/parse_tree.cpp fi
  #endif
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/postfork.cpp fish-3.0.2-workdir/src/postfork.cpp
 --- fish-3.0.2-clean/src/postfork.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/postfork.cpp	2025-12-09 02:38:00.173026208 +1300
++++ fish-3.0.2-workdir/src/postfork.cpp	2025-12-09 02:50:31.405833962 +1300
 @@ -193,7 +193,7 @@
  
          switch (io->io_mode) {
@@ -1041,7 +1041,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/postfork.cpp fish
                  if (dup2(io_pipe->pipe_fd[write_pipe_idx], io->fd) != io->fd) {
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/proc.cpp fish-3.0.2-workdir/src/proc.cpp
 --- fish-3.0.2-clean/src/proc.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/proc.cpp	2025-12-09 02:39:28.525281473 +1300
++++ fish-3.0.2-workdir/src/proc.cpp	2025-12-09 02:50:31.405833962 +1300
 @@ -605,11 +605,11 @@
      const wchar_t *msg = L"Job %d, '%ls' has ended";  // this is the most common status msg
      if (status == JOB_STOPPED) msg = L"Job %d, '%ls' has stopped";
@@ -1093,7 +1093,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/proc.cpp fish-3.0
  
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/reader.cpp fish-3.0.2-workdir/src/reader.cpp
 --- fish-3.0.2-clean/src/reader.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/reader.cpp	2025-12-09 02:38:22.972963517 +1300
++++ fish-3.0.2-workdir/src/reader.cpp	2025-12-09 02:50:31.442834551 +1300
 @@ -827,9 +827,9 @@
      proc_push_interactive(0);
      if (exec_subshell(fish_title_command, lst, false /* ignore exit status */) != -1 &&
@@ -1160,7 +1160,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/reader.cpp fish-3
      } else {
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/wgetopt.cpp fish-3.0.2-workdir/src/wgetopt.cpp
 --- fish-3.0.2-clean/src/wgetopt.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/wgetopt.cpp	2025-12-09 02:36:46.962076834 +1300
++++ fish-3.0.2-workdir/src/wgetopt.cpp	2025-12-09 02:50:31.405833962 +1300
 @@ -205,7 +205,7 @@
  
      if (temp == NULL || c == ':') {
@@ -1226,7 +1226,7 @@ diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/wgetopt.cpp fish-
          nextchar = (wchar_t *)L"";
 diff '--color=auto' -urN --no-dereference fish-3.0.2-clean/src/wutil.cpp fish-3.0.2-workdir/src/wutil.cpp
 --- fish-3.0.2-clean/src/wutil.cpp	2019-02-20 02:39:17.000000000 +1300
-+++ fish-3.0.2-workdir/src/wutil.cpp	2025-12-09 02:33:19.118039376 +1300
++++ fish-3.0.2-workdir/src/wutil.cpp	2025-12-09 02:50:31.399753797 +1300
 @@ -260,9 +260,9 @@
  void wperror(const wchar_t *s) {
      int e = errno;

@@ -60,6 +60,102 @@ diff -urN --no-dereference mlibc/options/posix/generic/wchar.cpp mlibc-nomos/opt
  }
  
  size_t wcsnlen(const wchar_t *, size_t) {
+diff -urN --no-dereference mlibc/sysdeps/astral/generic/generic.cpp mlibc-nomos/sysdeps/astral/generic/generic.cpp
+--- mlibc/sysdeps/astral/generic/generic.cpp	2025-12-08 14:36:43.174118419 +1300
++++ mlibc-nomos/sysdeps/astral/generic/generic.cpp	2025-12-14 03:26:07.373836764 +1300
+@@ -240,7 +240,7 @@
+ 		long ret;
+ 		return syscall(SYSCALL_PAUSE, &ret);
+ 	}
+-	
++
+ 	int sys_chroot(const char *path) {
+ 		long ret;
+ 		return syscall(SYSCALL_CHROOT, &ret, (uint64_t)path);
+@@ -288,7 +288,7 @@
+ 	#define TTY_NAME_MAX 32
+ 	#define TTY_PREFIX "/dev/"
+ 
+-	
++
+ 	int sys_ttyname(int fd, char * buffer, size_t size) {
+ 		size_t prefixLen = strlen(TTY_PREFIX);
+ 		if(size < TTY_NAME_MAX + prefixLen) {
+@@ -447,7 +447,7 @@
+ 	#ifndef MLIBC_BUILDING_RTLD
+ 
+ 	[[noreturn]] void sys_thread_exit() {
+-		syscall(SYSCALL_THREADEXIT, nullptr);
++		syscall(SYSCALL_EXITTHREAD, nullptr);
+ 		__builtin_unreachable();
+ 	}
+ 
+@@ -498,7 +498,7 @@
+ 		*length = ret;
+ 		return err;
+ 	}
+-	
++
+ 	int sys_bind(int fd, const struct sockaddr *addr_ptr, socklen_t addr_length) {
+ 		long ret;
+ 		return syscall(SYSCALL_BIND, &ret, fd, (uint64_t)addr_ptr, addr_length);
+@@ -690,7 +690,7 @@
+ 	int sys_link(const char *old_path, const char *new_path) {
+ 		return sys_linkat(AT_FDCWD, old_path, AT_FDCWD, new_path, 0);
+ 	}
+-	
++
+ 	int sys_symlinkat(const char *target_path, int dirfd, const char *link_path) {
+ 		return dolink(AT_FDCWD, target_path, dirfd, link_path, 0, 1);
+ 	}
+@@ -826,7 +826,7 @@
+ 		long ret;
+ 		syscall(SYSCALL_PRINT, &ret, (uint64_t)message);
+ 	}
+-	
++
+ 	[[noreturn]] void sys_libc_panic() {
+ 		sys_libc_log("mlibc: panic");
+ 		sys_exit(1);
+@@ -863,7 +863,7 @@
+ 		size += 4096 - (size % 4096);
+ 		return sys_vm_unmap(pointer, size);
+ 	}
+-	
++
+ 	int sys_openat(int dirfd, const char *path, int flags, mode_t mode, int *fd) {
+ 		long ret;
+ 		long err = syscall(SYSCALL_OPENAT, &ret, dirfd, (uint64_t)path, flags, mode);
+@@ -901,7 +901,7 @@
+ 		*new_offset = ret;
+ 		return error;
+ 	}
+-	
++
+ 	int sys_close(int fd) {
+ 		long r;
+ 		return syscall(SYSCALL_CLOSE, &r, fd);
+@@ -918,7 +918,7 @@
+ 		long ret;
+ 		return syscall(SYSCALL_MUNMAP, &ret, (uintptr_t)pointer, size);
+ 	}
+-	
++
+ 	int sys_isatty(int fd) {
+ 		long ret;
+ 		return syscall(SYSCALL_ISATTY, &ret, fd);
+diff -urN --no-dereference mlibc/sysdeps/astral/threading/x86_64-thread.cpp mlibc-nomos/sysdeps/astral/threading/x86_64-thread.cpp
+--- mlibc/sysdeps/astral/threading/x86_64-thread.cpp	2025-12-08 14:36:43.175074977 +1300
++++ mlibc-nomos/sysdeps/astral/threading/x86_64-thread.cpp	2025-12-11 17:04:50.130521581 +1300
+@@ -39,7 +39,7 @@
+ 		} else {
+ 			*stack_base = *stack;
+ 		}
+-		
++
+ 		*stack = (void *)((char *)*stack_base + *stack_size);
+ 
+ 		void **stack_it = (void **)*stack;
 diff -urN --no-dereference mlibc/sysdeps/nomos/crt-x86_64/crt1.S mlibc-nomos/sysdeps/nomos/crt-x86_64/crt1.S
 --- mlibc/sysdeps/nomos/crt-x86_64/crt1.S	1970-01-01 12:00:00.000000000 +1200
 +++ mlibc-nomos/sysdeps/nomos/crt-x86_64/crt1.S	2025-12-08 15:12:35.122029109 +1300
@@ -76,8 +172,8 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/crt-x86_64/crt1.S mlibc-nomos/sys
 +
 diff -urN --no-dereference mlibc/sysdeps/nomos/crt-x86_64/crti.S mlibc-nomos/sysdeps/nomos/crt-x86_64/crti.S
 --- mlibc/sysdeps/nomos/crt-x86_64/crti.S	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/crt-x86_64/crti.S	2025-12-08 15:15:52.114787112 +1300
-@@ -0,0 +1,12 @@
++++ mlibc-nomos/sysdeps/nomos/crt-x86_64/crti.S	2025-12-11 16:03:29.061959496 +1300
+@@ -0,0 +1,13 @@
 +    .ident "x86_64-nomos-mlibc crti"
 +    .section .init
 +    .global _init
@@ -87,6 +183,7 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/crt-x86_64/crti.S mlibc-nomos/sys
 +
 +.section .fini
 +.global _fini
++.type _fini, @function
 +_fini:
 +    push %rax
 +.section .note.GNU-stack,"",%progbits
@@ -146,8 +243,8 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/generic/entry.cpp mlibc-nomos/sys
 +}
 diff -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cpp mlibc-nomos/sysdeps/nomos/generic/generic.cpp
 --- mlibc/sysdeps/nomos/generic/generic.cpp	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/generic/generic.cpp	2025-12-11 02:19:32.471270276 +1300
-@@ -0,0 +1,664 @@
++++ mlibc-nomos/sysdeps/nomos/generic/generic.cpp	2025-12-16 15:31:13.607308371 +1300
+@@ -0,0 +1,1028 @@
 +#include <asm/ioctls.h>
 +#include <bits/ensure.h>
 +#include <errno.h>
@@ -156,6 +253,7 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cpp mlibc-nomos/s
 +#include <limits.h>
 +#include <mlibc/all-sysdeps.hpp>
 +#include <mlibc/debug.hpp>
++#include <mlibc/tcb.hpp>
 +#include <nomos/syscall.h>
 +#include <stddef.h>
 +#include <stdint.h>
@@ -170,6 +268,23 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cpp mlibc-nomos/s
 +#define STUB { \
 +    __ensure(!"STUB function was called."); \
 +    __builtin_unreachable(); \
++}
++
++extern "C" void __mlibc_thread_trampoline(void *(*fn)(void *), Tcb *tcb, void *arg) {
++    if (mlibc::sys_tcb_set(tcb)) {
++        __ensure(!"failed to set tcb for new thread");
++    }
++
++    while (__atomic_load_n(&tcb->tid, __ATOMIC_RELAXED) == 0) {
++        mlibc::sys_futex_wait(&tcb->tid, 0, nullptr);
++    }
++
++    tcb->invokeThreadFunc(reinterpret_cast<void *>(fn), arg);
++
++    __atomic_store_n(&tcb->didExit, 1, __ATOMIC_RELEASE);
++    mlibc::sys_futex_wake(&tcb->didExit);
++
++    mlibc::sys_thread_exit();
 +}
 +
 +namespace mlibc {
@@ -198,10 +313,21 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cpp mlibc-nomos/s
 +        return 0;
 +    }
 +
++    #define FUTEX_WAIT 0
++    #define FUTEX_WAKE 1
++
 +    int sys_futex_wait(int *ptr, int expected, const struct timespec *time) {
++        ssize_t ret = syscall(SYSCALL_FUTEX, (uint64_t)ptr, FUTEX_WAIT, expected, (uint64_t)time);
++        if (ret < 0) {
++            return -ret;
++        }
 +        return 0;
 +    }
 +    int sys_futex_wake(int *ptr) {
++        ssize_t ret = syscall(SYSCALL_FUTEX, (uint64_t)ptr, FUTEX_WAKE, INT_MAX, 0);
++        if (ret < 0) {
++            return -ret;
++        }
 +        return 0;
 +    }
 +
@@ -298,9 +424,40 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cpp mlibc-nomos/s
 +        return sys_vm_unmap(ptr, size);
 +    }
 +
++    enum clockop {
++        CLOCK_GETRES = 0,
++        CLOCK_GET = 1,
++        CLOCK_SET = 2
++    };
++
 +    int sys_clock_get(int clock, time_t *secs, long *nanos) {
-+        *secs = 0;
-+        *nanos = 0;
++        struct timespec time = { 0, 0 };
++        ssize_t ret = syscall(SYSCALL_CLOCK, CLOCK_GET, clock, (uint64_t)&time);
++        if (ret < 0) {
++            return -ret;
++        }
++        *secs = time.tv_sec;
++        *nanos = time.tv_nsec;
++        return 0;
++    }
++
++    int sys_clock_getres(int clock, time_t *secs, long *nanos) {
++        struct timespec time = { 0, 0 };
++        ssize_t ret = syscall(SYSCALL_CLOCK, CLOCK_GETRES, clock, (uint64_t)&time);
++        if (ret < 0) {
++            return -ret;
++        }
++        *secs = time.tv_sec;
++        *nanos = time.tv_nsec;
++        return 0;
++    }
++
++    int sys_clock_set(int clock, time_t secs, long nanos) {
++        struct timespec time = { .tv_sec = secs, .tv_nsec = nanos };
++        ssize_t ret = syscall(SYSCALL_CLOCK, CLOCK_SET, clock, (uint64_t)&time);
++        if (ret < 0) {
++            return -ret;
++        }
 +        return 0;
 +    }
 +
@@ -425,6 +582,27 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cpp mlibc-nomos/s
 +        return ENOTTY;
 +    }
 +
++#if !defined(MLIBC_BUILDING_RTLD) || defined(MLIBC_STATIC_BUILD)
++
++#define TTYNAMEMAX 32
++#define TTYPREFIX "/dev/"
++#define TTYNAMEIOCTL 0x16789123
++
++    int sys_ttyname(int fd, char *buf, size_t size) {
++        size_t len = strlen(TTYPREFIX);
++        if (size < TTYNAMEMAX + len) {
++            return ENAMETOOLONG;
++        }
++
++        int res;
++        if (int e = sys_ioctl(fd, TTYNAMEIOCTL, buf, &res); e) {
++            return e;
++        }
++        return 0;
++    }
++
++#endif
++
 +    int sys_openat(int dirfd, const char *path, int flags, mode_t mode, int *fd) {
 +        ssize_t ret = syscall(SYSCALL_OPENAT, dirfd, (uint64_t)path, flags, mode);
 +        if (ret < 0) {
@@ -479,6 +657,9 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cpp mlibc-nomos/s
 +    }
 +
 +    int sys_sigprocmask(int how, const sigset_t *set, sigset_t *retrieve) {
++        if (set) {
++            mlibc::infoLogger() << "mlibc: sys_sigprocmask() " << (uint64_t)*set << frg::endlog;
++        }
 +        ssize_t ret = syscall(SYSCALL_SIGPROCMASK, how, (uint64_t)set, (uint64_t)retrieve);
 +        if (ret < 0) {
 +            return -ret;
@@ -659,6 +840,15 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cpp mlibc-nomos/s
 +        return 0;
 +    }
 +
++    int sys_faccessat(int fd, const char *pathname, int mode, int flags) {
++        size_t len = strlen(pathname);
++        ssize_t ret = syscall(SYSCALL_ACCESS, fd, (uint64_t)pathname, len, mode, flags);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
 +    int sys_readlink(const char *path, void *buf, size_t size, ssize_t *length) {
 +        ssize_t ret;
 +        size_t path_len = strlen(path);
@@ -738,7 +928,8 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cpp mlibc-nomos/s
 +    }
 +
 +    int sys_pause(void) {
-+        return sys_ppoll(NULL, 0, NULL, NULL, NULL);
++        sys_ppoll(NULL, 0, NULL, NULL, NULL);
++        return EINTR;
 +    }
 +
 +    int sys_sigsuspend(const sigset_t *mask) {
@@ -810,7 +1001,277 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cpp mlibc-nomos/s
 +        }
 +        return 0;
 +    }
++
++    extern "C" void __mlibc_thread_entry(void);
++
++    int sys_clone(void *tcb, pid_t *tid_out, void *stack) {
++        ssize_t ret = syscall(SYSCALL_NEWTHREAD, (uintptr_t)__mlibc_thread_entry, (uint64_t)stack);
++        if (ret < 0) {
++            return -ret;
++        }
++        *tid_out = ret;
++        return 0;
++    }
++
++    #include <sys/mman.h>
++
++    int sys_prepare_stack(void **stack, void *entry, void *arg, void *tcb, size_t *stacksize, size_t *guardsize, void **stackbase) {
++        *guardsize = 0x1000; // 4KB guard page.
++        *stacksize = *stacksize ? *stacksize : 0x20000;
++        if (!*stack) {
++            *stackbase = mmap(NULL, *stacksize + *guardsize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
++            if (*stackbase == MAP_FAILED) {
++                return errno;
++            }
++            munmap((char *)*stackbase + *stacksize, *guardsize); // Unmap the guard page.
++        } else {
++            *stackbase = *stack;
++        }
++
++        *stack = (void *)((uintptr_t)*stackbase + *stacksize);
++        void **sp = (void **)*stack;
++
++        #if defined(__x86_64__)
++        // Align the stack to 16 bytes as required by the ABI.
++        sp = (void **)((uintptr_t)sp & ~15);
++        #endif
++
++        *(--sp) = arg;          // Argument to thread function.
++        *(--sp) = tcb;          // TCB pointer.
++        *(--sp) = entry;        // Thread entry.
++
++        *stack = (void *)sp;
++        return 0;
++    }
 +#endif
++
++    void sys_thread_exit(void) {
++        syscall(SYSCALL_EXITTHREAD);
++        __builtin_unreachable();
++    }
++
++    int sys_mknodat(int dirfd, const char *path, mode_t mode, int dev) {
++        size_t len = strlen(path);
++        ssize_t ret = syscall(SYSCALL_MKNODAT, dirfd, (uint64_t)path, len, mode, dev);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_mkfifoat(int dirfd, const char *path, mode_t mode) {
++        // Just create a FIFO node. Kernel automatically handles creating underlying pipes for FIFOs.
++        return sys_mknodat(dirfd, path, mode | S_IFIFO, 0);
++    }
++
++    int sys_mkdirat(int dirfd, const char *path, mode_t mode) {
++        return sys_mknodat(dirfd, path, mode | S_IFDIR, 0);
++    }
++
++    int sys_mkdir(const char *path, mode_t mode) {
++        return sys_mkdirat(AT_FDCWD, path, mode);
++    }
++
++    int sys_chmod(const char *path, mode_t mode) {
++        size_t len = strlen(path);
++        ssize_t ret = syscall(SYSCALL_CHMOD, AT_FDCWD, (uint64_t)path, len, mode, 0);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_fchmodat(int fd, const char *path, mode_t mode, int flags) {
++        size_t len = strlen(path);
++        ssize_t ret = syscall(SYSCALL_CHMOD, fd, (uint64_t)path, len, mode, flags);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_fchmod(int fd, mode_t mode) {
++        ssize_t ret = syscall(SYSCALL_CHMOD, fd, (uint64_t)"", 0, mode, AT_EMPTY_PATH);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_chown(const char *path, uid_t uid, gid_t gid) {
++        size_t len = strlen(path);
++        ssize_t ret = syscall(SYSCALL_CHOWN, AT_FDCWD, (uint64_t)path, len, uid, gid, 0);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_fchownat(int fd, const char *path, uid_t uid, gid_t gid, int flags) {
++        size_t len = strlen(path);
++        ssize_t ret = syscall(SYSCALL_CHOWN, fd, (uint64_t)path, len, uid, gid, flags);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_fchown(int fd, uid_t uid, gid_t gid) {
++        ssize_t ret = syscall(SYSCALL_CHOWN, fd, (uint64_t)"", 0, uid, gid, AT_EMPTY_PATH);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_umask(mode_t mode, mode_t *old) {
++        ssize_t ret = syscall(SYSCALL_UMASK, mode);
++        if (ret < 0) {
++            return -ret;
++        }
++        if (old) {
++            *old = ret;
++        }
++        return 0;
++    }
++
++    int sys_sleep(time_t *secs, long *nanos) {
++        struct timespec req = { .tv_sec = *secs, .tv_nsec = *nanos };
++        struct timespec rem = { 0, 0 };
++        ssize_t ret = syscall(SYSCALL_SLEEP, (uint64_t)&req, (uint64_t)&rem);
++        if (ret < 0) {
++            return -ret;
++        }
++        *secs = rem.tv_sec;
++        *nanos = rem.tv_nsec;
++        return 0;
++    }
++
++    int sys_sethostname(const char *name, size_t len) {
++        ssize_t ret = syscall(SYSCALL_SETHOSTNAME, (uint64_t)name, len);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++#if !defined(MLIBC_BUILDING_RTLD) || defined(MLIBC_STATIC_BUILD)
++
++    #include <sys/resource.h>
++
++    int sys_getrlimit(int resource, struct rlimit *limit) {
++        switch (resource) {
++            case RLIMIT_NOFILE:
++                limit->rlim_cur = RLIM_INFINITY;
++                limit->rlim_max = RLIM_INFINITY;
++                return 0;
++            default:
++                return EINVAL;
++        }
++    }
++#endif
++
++    int sys_sigaltstack(const stack_t *ss, stack_t *oss) {
++        ssize_t ret = syscall(SYSCALL_SIGALTSTACK, (uint64_t)ss, (uint64_t)oss);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++#if !defined(MLIBC_BUILDING_RTLD) || defined(MLIBC_STATIC_BUILD)
++    #include <fcntl.h>
++    #include <sys/file.h>
++
++    int sys_flock(int fd, int operation) {
++        struct flock lock;
++        lock.l_whence = SEEK_SET;
++        lock.l_start = 0;
++        lock.l_len = 0; // Lock the whole file.
++        lock.l_pid = sys_getpid();
++
++        switch (operation & (LOCK_SH | LOCK_EX | LOCK_UN)) {
++            case LOCK_SH:
++                lock.l_type = F_RDLCK;
++                break;
++            case LOCK_EX:
++                lock.l_type = F_WRLCK;
++                break;
++            case LOCK_UN:
++                lock.l_type = F_UNLCK;
++                break;
++            default:
++                return EINVAL;
++        }
++
++        int cmd = (operation & LOCK_NB) ? F_SETLK : F_SETLKW;
++        ssize_t ret = syscall(SYSCALL_FCNTL, fd, cmd, (uint64_t)&lock);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++#endif
++
++    int sys_ftruncate(int fd, off_t length) {
++        ssize_t ret = syscall(SYSCALL_FTRUNCATE, fd, length);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    void sys_sync() {
++        syscall(SYSCALL_SYNC);
++    }
++
++    int sys_fsync(int fd) {
++        ssize_t ret = syscall(SYSCALL_FSYNC, fd, 0);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_fdatasync(int fd) {
++        ssize_t ret = syscall(SYSCALL_FSYNC, fd, 1);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_fadvise(int fd, off_t offset, off_t len, int advice) {
++        (void)fd;
++        (void)offset;
++        (void)len;
++        (void)advice;
++        return 0;
++    }
++
++    int sys_sigpending(sigset_t *set) {
++        ssize_t ret = syscall(SYSCALL_SIGPENDING, (uint64_t)set);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_getitimer(int which, struct itimerval *value) {
++        ssize_t ret = syscall(SYSCALL_GETITIMER, which, (uint64_t)value);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_setitimer(int which, const struct itimerval *new_value, struct itimerval *old_value) {
++        ssize_t ret = syscall(SYSCALL_SETITIMER, which, (uint64_t)new_value, (uint64_t)old_value);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
 +}
 \ No newline at end of file
 diff -urN --no-dereference mlibc/sysdeps/nomos/generic/mntent.cpp mlibc-nomos/sysdeps/nomos/generic/mntent.cpp
@@ -963,6 +1424,20 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/generic/mount.cpp mlibc-nomos/sys
 +int umount2(const char *__target, int __flags) {
 +    return -ENOSYS;
 +}
+\ No newline at end of file
+diff -urN --no-dereference mlibc/sysdeps/nomos/generic/thread.S mlibc-nomos/sysdeps/nomos/generic/thread.S
+--- mlibc/sysdeps/nomos/generic/thread.S	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/generic/thread.S	2025-12-11 06:24:56.516962015 +1300
+@@ -0,0 +1,9 @@
++.section .text
++.global __mlibc_thread_entry
++__mlibc_thread_entry:
++    pop %rdi # Pop thread entry function.
++    pop %rsi # Pop TCB pointer.
++    pop %rdx # Pop argument to thread entry function.
++    call __mlibc_thread_trampoline
++
++.section .note.GNU-stack,"",%progbits
 \ No newline at end of file
 diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/access.h mlibc-nomos/sysdeps/nomos/include/abi-bits/access.h
 --- mlibc/sysdeps/nomos/include/abi-bits/access.h	1970-01-01 12:00:00.000000000 +1200
@@ -2520,7 +2995,7 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/sig-limits.h mli
 +#endif /*_ABIBITS_SIG_LIMITS_H */
 diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/signal.h mlibc-nomos/sysdeps/nomos/include/abi-bits/signal.h
 --- mlibc/sysdeps/nomos/include/abi-bits/signal.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/abi-bits/signal.h	2025-12-11 01:52:02.277768194 +1300
++++ mlibc-nomos/sysdeps/nomos/include/abi-bits/signal.h	2025-12-11 13:53:14.624041787 +1300
 @@ -0,0 +1,224 @@
 +#ifndef _ABIBITS_SIGNAL_H
 +#define _ABIBITS_SIGNAL_H
@@ -2614,7 +3089,7 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/include/abi-bits/signal.h mlibc-n
 +#define SEGV_MAPERR 1
 +#define SEGV_ACCERR 2
 +
-+typedef uint64_t sigset_t;
++typedef long sigset_t;
 +
 +/* Constants for sigprocmask() */
 +#define SIG_BLOCK 0
@@ -3986,8 +4461,8 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/include/mntent.h mlibc-nomos/sysd
 \ No newline at end of file
 diff -urN --no-dereference mlibc/sysdeps/nomos/include/nomos/syscall.h mlibc-nomos/sysdeps/nomos/include/nomos/syscall.h
 --- mlibc/sysdeps/nomos/include/nomos/syscall.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/nomos/syscall.h	2025-12-09 18:21:27.960623682 +1300
-@@ -0,0 +1,72 @@
++++ mlibc-nomos/sysdeps/nomos/include/nomos/syscall.h	2025-12-16 15:08:37.660339227 +1300
+@@ -0,0 +1,89 @@
 +#ifndef _NOMOS__SYSCALL_H_
 +#define _NOMOS__SYSCALL_H_
 +
@@ -4038,6 +4513,23 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/include/nomos/syscall.h mlibc-nom
 +#define SYSCALL_PIPE        41
 +#define SYSCALL_UNLINK      42
 +#define SYSCALL_PPOLL       43
++#define SYSCALL_FUTEX       44
++#define SYSCALL_NEWTHREAD   45
++#define SYSCALL_EXITTHREAD  46
++#define SYSCALL_MKNODAT     47
++#define SYSCALL_CLOCK       48
++#define SYSCALL_CHMOD       49
++#define SYSCALL_CHOWN       50
++#define SYSCALL_UMASK       51
++#define SYSCALL_SLEEP       52
++#define SYSCALL_SETHOSTNAME 53
++#define SYSCALL_SIGALTSTACK 54
++#define SYSCALL_FTRUNCATE   55
++#define SYSCALL_SYNC        56
++#define SYSCALL_FSYNC       57
++#define SYSCALL_SIGPENDING  58
++#define SYSCALL_GETITIMER   59
++#define SYSCALL_SETITIMER   60
 +
 +#ifndef __MLIBC_ABI_ONLY
 +
@@ -4087,10 +4579,51 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/include/sys/mount.h mlibc-nomos/s
 +
 +#endif /* _SYS_MOUNT_H */
 \ No newline at end of file
+diff -urN --no-dereference mlibc/sysdeps/nomos/include/sys/sysmacros.h mlibc-nomos/sysdeps/nomos/include/sys/sysmacros.h
+--- mlibc/sysdeps/nomos/include/sys/sysmacros.h	1970-01-01 12:00:00.000000000 +1200
++++ mlibc-nomos/sysdeps/nomos/include/sys/sysmacros.h	2025-12-14 21:33:14.009127404 +1300
+@@ -0,0 +1,36 @@
++#ifndef _SYS_SYSMACROS_H
++#define _SYS_SYSMACROS_H
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++#define majorhi 0xffffffff00000000ull
++#define majorlo 0x000000000000ff00ull
++#define minorhi 0x00000000ffff0000ull
++#define minorlo 0x00000000000000ffull
++
++static unsigned int __mlibc_dev_major(unsigned long long int __dev) {
++    return (unsigned int)(((__dev & majorhi) >> 32) | ((__dev & majorlo) >> 8));
++}
++
++static unsigned int __mlibc_dev_minor(unsigned long long int __dev) {
++    return (unsigned int)(((__dev & minorhi) >> 16) | (__dev & minorlo));
++}
++
++static unsigned long long int __mlibc_dev_makedev(unsigned int __major, unsigned int __minor) {
++    return (((unsigned long long int)(__major & 0xffffffff) << 32) |
++            (((unsigned long long int)(__minor & 0xffff)) << 16) |
++            (((unsigned long long int)(__major & 0xff00)) << 8) |
++            ((unsigned long long int)(__minor & 0xff)));
++}
++
++#define major(dev) __mlibc_dev_major(dev)
++#define minor(dev) __mlibc_dev_minor(dev)
++#define makedev(major, minor) __mlibc_dev_makedev(major, minor)
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif
+\ No newline at end of file
 diff -urN --no-dereference mlibc/sysdeps/nomos/meson.build mlibc-nomos/sysdeps/nomos/meson.build
 --- mlibc/sysdeps/nomos/meson.build	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/meson.build	2025-12-08 15:40:51.260379459 +1300
-@@ -0,0 +1,131 @@
++++ mlibc-nomos/sysdeps/nomos/meson.build	2025-12-14 21:33:25.558317084 +1300
+@@ -0,0 +1,133 @@
 +sysdep_supported_options = {
 +  'posix': true,
 +  'linux': false,
@@ -4106,7 +4639,8 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/meson.build mlibc-nomos/sysdeps/n
 +  'generic/entry.cpp',
 +  'generic/generic.cpp',
 +  'generic/mntent.cpp',
-+  'generic/mount.cpp'
++  'generic/mount.cpp',
++  'generic/thread.S'
 +)
 +
 +if not no_headers
@@ -4178,6 +4712,7 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/meson.build mlibc-nomos/sysdeps/n
 +  )
 +  install_headers(
 +    'include/sys/mount.h',
++	'include/sys/sysmacros.h',
 +    subdir: 'sys'
 +  )
 +  install_headers(

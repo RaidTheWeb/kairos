@@ -1,0 +1,36 @@
+diff '--color=auto' -urN --no-dereference gettext-0.26/gettext-runtime/gnulib-lib/getlocalename_l-unsafe.c gettext-0.26-nomos/gettext-runtime/gnulib-lib/getlocalename_l-unsafe.c
+--- gettext-0.26/gettext-runtime/gnulib-lib/getlocalename_l-unsafe.c	2025-07-08 20:54:38.000000000 +1200
++++ gettext-0.26-nomos/gettext-runtime/gnulib-lib/getlocalename_l-unsafe.c	2025-12-14 20:57:11.429823078 +1300
+@@ -488,6 +488,8 @@
+       struct gl_locale_category_t *plc =
+         &locale->category[gl_log2_lcmask_to_index (gl_log2_lc_mask (category))];
+       return (struct string_with_storage) { plc->name, STORAGE_OBJECT };
++#elif defined __mlibc__
++      return (struct string_with_storage) { "C", STORAGE_INDEFINITE };
+ #elif __GLIBC__ >= 2 && !defined __UCLIBC__
+       /* Work around an incorrect definition of the _NL_LOCALE_NAME macro in
+          glibc < 2.12.
+diff '--color=auto' -urN --no-dereference gettext-0.26/gettext-runtime/intl/gnulib-lib/getlocalename_l-unsafe.c gettext-0.26-nomos/gettext-runtime/intl/gnulib-lib/getlocalename_l-unsafe.c
+--- gettext-0.26/gettext-runtime/intl/gnulib-lib/getlocalename_l-unsafe.c	2025-07-08 20:54:39.000000000 +1200
++++ gettext-0.26-nomos/gettext-runtime/intl/gnulib-lib/getlocalename_l-unsafe.c	2025-12-14 20:57:52.996459534 +1300
+@@ -488,6 +488,8 @@
+       struct gl_locale_category_t *plc =
+         &locale->category[gl_log2_lcmask_to_index (gl_log2_lc_mask (category))];
+       return (struct string_with_storage) { plc->name, STORAGE_OBJECT };
++#elif defined __mlibc__
++      return (struct string_with_storage) { "C", STORAGE_INDEFINITE };
+ #elif __GLIBC__ >= 2 && !defined __UCLIBC__
+       /* Work around an incorrect definition of the _NL_LOCALE_NAME macro in
+          glibc < 2.12.
+diff '--color=auto' -urN --no-dereference gettext-0.26/gettext-tools/gnulib-lib/getlocalename_l-unsafe.c gettext-0.26-nomos/gettext-tools/gnulib-lib/getlocalename_l-unsafe.c
+--- gettext-0.26/gettext-tools/gnulib-lib/getlocalename_l-unsafe.c	2025-07-08 20:54:39.000000000 +1200
++++ gettext-0.26-nomos/gettext-tools/gnulib-lib/getlocalename_l-unsafe.c	2025-12-14 20:58:25.082950204 +1300
+@@ -488,6 +488,8 @@
+       struct gl_locale_category_t *plc =
+         &locale->category[gl_log2_lcmask_to_index (gl_log2_lc_mask (category))];
+       return (struct string_with_storage) { plc->name, STORAGE_OBJECT };
++#elif defined __mlibc__
++      return (struct string_with_storage) { "C", STORAGE_INDEFINITE };
+ #elif __GLIBC__ >= 2 && !defined __UCLIBC__
+       /* Work around an incorrect definition of the _NL_LOCALE_NAME macro in
+          glibc < 2.12.

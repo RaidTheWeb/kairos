@@ -1,10 +1,10 @@
 #! /bin/sh
 
-name=test
+name=init
 skip_pkg_check=yes
 version=0git
 revision=1
-source_dir="test" # Built from an actual directory, as opposed to a source recipe
+source_dir="init" # Built from an actual directory, as opposed to a source recipe
 imagedeps="build-essential nasm"
 deps="mlibc libgcc"
 hostdeps="gcc pkg-config binutils"
@@ -18,10 +18,11 @@ configure() {
 build() {
     cp -rp "${source_dir}"/. ./
 
-    x86_64-nomos-mlibc-gcc -g -mavx -mavx2 -static test.c -o test
+    x86_64-nomos-mlibc-gcc -g -mavx -mavx2 -static init.c -o init
 }
 
 package() {
-    cp test ${dest_dir}/
+    mkdir -p ${dest_dir}/bin
+    cp init ${dest_dir}/bin/init
 }
 
