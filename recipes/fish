@@ -7,7 +7,7 @@ tarball_url="https://github.com/fish-shell/fish-shell/releases/download/${versio
 tarball_blake2b="fedc8bd5fd6d7856b695207ce9ac7a5a47f0e3c211d2aa2151a7a3c1bd944b3cf5c86ddf8b6e4c4d3499bb72d4ede64886706e05a44786d70c665b4ffb85369f"
 hostdeps="gcc pkg-config"
 imagedeps="automake"
-deps="mlibc libgcc ncurses libstdc++"
+deps="corelibs ncurses"
 allow_network="yes"
 
 prepare() {

@@ -1,0 +1,29 @@
+#! /bin/sh
+
+name=openrc
+version=0.63
+revision=1
+tarball_url="https://github.com/OpenRC/openrc/archive/refs/tags/${version}.tar.gz"
+tarball_blake2b=70800a0115966ca20ec2fb245e0039cff33696a5ae0fdc314b032f29fbd54c5b246e01890d752daaefd41d3ba08ce2f91adb02d327d595c3fcb3d71d59357ed5
+hostdeps="binutils gcc pkg-config"
+deps="corelibs"
+
+configure() {
+    meson_configure \
+        -Daudit=disabled \
+        -Dbranding=\"Kairos\" \
+        -Dlocal_prefix=usr/local \
+        -Dnewnet=false \
+        -Dpam=false \
+        -Dpkg_prefix=usr \
+        -Dselinux=disabled \
+        -Dshell="/usr/bin/bash"
+}
+
+build() {
+    ninja -j${parallelism}
+}
+
+package() {
+    DESTDIR="${dest_dir}" ninja install
+}

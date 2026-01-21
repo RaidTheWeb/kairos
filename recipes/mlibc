@@ -8,6 +8,8 @@ git_url="https://github.com/managarm/mlibc.git"
 commit=a5a4ac5423b5c418a0076c364513f64c86980178
 hostdeps="gcc pkg-config"
 deps="mlibc-headers"
+builddeps="linux-headers"
+imagedeps="meson ninja-build git build-essential"
 
 early_prepare() {
     meson subprojects download
@@ -25,7 +27,8 @@ configure() {
         -Dno_headers=true \
         -Ddefault_library=both \
         -Dlibgcc_dependency=false \
-        -Duse_freestnd_hdrs=enabled
+        -Duse_freestnd_hdrs=enabled \
+        -Dlinux_kernel_headers="${base_dir}/build-support/linux-headers/usr/include"
 }
 
 build() {

@@ -1,0 +1,7 @@
+#! /bin/sh
+
+name=corelibs
+skip_pkg_check=yes
+version=0git
+revision=1
+deps="mlibc libgcc libstdc++ libatomic libintl libiconv"

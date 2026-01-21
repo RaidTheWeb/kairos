@@ -138,9 +138,9 @@ autotools_recursive_regen() {
 }
 
 cmake_configure() {
-        CFLAGS="$TARGET_CFLAGS" \
-        CXXFLAGS="$TARGET_CXXFLAGS" \
-        LDFLAGS="$TARGET_LDFLAGS" \
+    CFLAGS="$TARGET_CFLAGS" \
+    CXXFLAGS="$TARGET_CXXFLAGS" \
+    LDFLAGS="$TARGET_LDFLAGS" \
     cmake_configure_noflags \
         "$@"
 }
@@ -151,6 +151,7 @@ cmake_configure_noflags() {
     fi
 
     cmake "${cmake_source_dir}" \
+        -DCMAKE_MODULE_PATH="${base_dir}/build-support/cmake-host" \
         -DCMAKE_TOOLCHAIN_FILE="${base_dir}/build-support/CMakeToolchain-${JINX_ARCH}.txt" \
         -DCMAKE_INSTALL_PREFIX=${prefix} \
         -DCMAKE_INSTALL_SYSCONFDIR=/etc \

@@ -11,19 +11,22 @@
 #include <asm/ioctls.h>
 #include <sys/ioctl.h>
 #include <sys/utsname.h>
+#include <sys/mount.h>
+#include <nomos/syscall.h>
 
-#define MAX_INPUT 256
-#define MAX_ARGS 64
-
-#define USER "rtw"
+#include <getopt.h>
 
 void reaper(int signum) {
-    // Reap all terminated child processes.
+    // Whenever we're notified of a child process terminating, reap all terminated children (if we have any).
     while (waitpid(-1, NULL, WNOHANG) > 0);
 }
 
-int main() {
+int main(int argc, const char **argv) {
+    // Make /dev if it doesn't exist.
+    mkdir("/dev", 0755);
+    mount("devtmpfs", "/dev", "devtmpfs", 0, NULL);
 
+    // Open /dev/console so we have actual I/O.
     int console = open("/dev/console", O_RDWR);
     if (console == -1) {
         perror("open /dev/console");
@@ -34,8 +37,6 @@ int main() {
     dup2(console, STDIN_FILENO);
     dup2(console, STDOUT_FILENO);
     dup2(console, STDERR_FILENO);
-
-    close(console);
 
     if (ioctl(STDIN_FILENO, TIOCSCTTY, 1) == -1) { // Set controlling terminal.
         perror("ioctl TIOCSCTTY");
@@ -78,7 +79,7 @@ int main() {
         printf("Welcome to %s!\n", buf.nodename);
     }
 
-    char *envp[] = { "TERM=linux", NULL };
+    char *envp[] = { "TERM=linux", "PATH=/bin:/usr/bin", "USER=root", NULL };
     pid_t logpid = fork();
     if (logpid == 0) {
         setsid(); // Start new session for bash.
@@ -91,8 +92,8 @@ int main() {
         signal(SIGINT, SIG_DFL); // Restore default SIGINT behavior
         signal(SIGCHLD, SIG_DFL); // Restore default SIGCHLD behavior
 
-        setgid(1000);
-        setuid(1000);
+        setgid(0);
+        setuid(0);
 
         tcsetpgrp(STDIN_FILENO, getpgid(0));
         execvpe("/usr/bin/bash", (char *[]) { "bash", NULL }, envp);
@@ -101,7 +102,7 @@ int main() {
     } else if (logpid > 0) {
         setpgid(logpid, logpid);
         while (1) {
-            pause(); // Wait for signals
+            pause(); // Wait for signals. This also means the init process doesn't exit when the child process terminates.
         }
     } else {
         perror("fork");

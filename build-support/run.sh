@@ -21,4 +21,4 @@ if ! [ -z "$DEBUG" ]; then
 fi
 
 
-qemu-system-${ARCH} -M q35 -cpu max ${qemu_flags} -drive file=kairos.iso -drive file=nvm.img,if=none,id=nvm -device nvme,serial=deadbeef,drive=nvm -no-reboot -debugcon stdio
+qemu-system-${ARCH} -M q35 -cpu max ${qemu_flags} -drive file=kairos.img,if=none,id=nvm -device nvme,serial=deadbeef,drive=nvm -no-reboot -debugcon stdio -boot menu=on -bios /usr/share/ovmf/OVMF_CODE.fd -bios /usr/share/ovmf/x64/OVMF.4m.fd

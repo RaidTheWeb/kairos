@@ -5,6 +5,7 @@ skip_pkg_check=yes
 revision=1
 from_source=mlibc
 hostdeps="pkg-config"
+builddeps="linux-headers"
 
 configure() {
     meson_configure -Dheaders_only=true

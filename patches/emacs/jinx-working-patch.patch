@@ -1,0 +1,12 @@
+diff '--color=auto' -urN --no-dereference emacs-30.2-clean/configure emacs-30.2-workdir/configure
+--- emacs-30.2-clean/configure	2025-08-14 20:10:17.000000000 +1200
++++ emacs-30.2-workdir/configure	2025-12-29 15:35:20.854272498 +1300
+@@ -8757,7 +8757,7 @@
+   ;;
+ 
+   ## GNU/Linux and similar ports
+-  *-*-linux* )
++  *-*-linux* | *-*-nomos* )
+     opsys=gnu-linux
+   ;;
+ 

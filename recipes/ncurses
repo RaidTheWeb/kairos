@@ -8,7 +8,7 @@ tarball_url="https://github.com/ThomasDickey/ncurses-snapshots/archive/refs/tags
 tarball_blake2b="3a0ccf26be6af9527372712724905663ca82ddedd460315c6d38e4affabcb2165dc0a06046c6cefc22d57318aa609ea206ebaad68d9b0f692e75e84756132536"
 imagedeps="build-essential ncurses-bin patchelf"
 hostdeps="gcc pkg-config"
-deps="mlibc libgcc libstdc++"
+deps="corelibs"
 
 prepare() {
     autotools_recursive_regen

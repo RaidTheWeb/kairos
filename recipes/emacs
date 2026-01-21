@@ -1,0 +1,32 @@
+#! /bin/sh
+
+name=emacs
+version=30.2
+revision=1
+tarball_url="https://ftp.gnu.org/gnu/emacs/emacs-${version}.tar.gz"
+tarball_blake2b=82637f8af0b8569f4c0c50966014f304030b7dc5330435a799b6195ea06c217b1fd131dccd5c918193a438b6b7d62d2466a0efd16a85aeafa5dc7d4c55d45d34
+hostdeps="gcc pkg-config"
+deps="corelibs ncurses gmp"
+
+prepare() {
+    autotools_recursive_regen
+}
+
+configure() {
+    # XXX: Breaks when make-doc.
+
+    cp -rp ${source_dir}/* .
+    autotools_configure \
+        --srcdir=. \
+        --without-all \
+        --with-threads \
+        --with-libgmp
+}
+
+build() {
+    make -j${parallelism}
+}
+
+package() {
+    DESTDIR="${dest_dir}" make install
+}
