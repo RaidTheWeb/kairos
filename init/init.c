@@ -22,11 +22,7 @@ void reaper(int signum) {
 }
 
 int main(int argc, const char **argv) {
-    // Make /dev if it doesn't exist.
-    mkdir("/dev", 0755);
-    mount("devtmpfs", "/dev", "devtmpfs", 0, NULL);
-
-    // Open /dev/console so we have actual I/O.
+    // Open /dev/console so we can acquire a controlling terminal.
     int console = open("/dev/console", O_RDWR);
     if (console == -1) {
         perror("open /dev/console");

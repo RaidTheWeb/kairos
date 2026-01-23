@@ -243,8 +243,8 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/generic/entry.cpp mlibc-nomos/sys
 +}
 diff -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cpp mlibc-nomos/sysdeps/nomos/generic/generic.cpp
 --- mlibc/sysdeps/nomos/generic/generic.cpp	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/generic/generic.cpp	2025-12-29 03:39:38.842871671 +1300
-@@ -0,0 +1,1094 @@
++++ mlibc-nomos/sysdeps/nomos/generic/generic.cpp	2026-01-22 16:40:35.540356609 +1300
+@@ -0,0 +1,1122 @@
 +#include <asm/ioctls.h>
 +#include <bits/ensure.h>
 +#include <errno.h>
@@ -1338,43 +1338,34 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/generic/generic.cpp mlibc-nomos/s
 +        }
 +        return 0;
 +    }
-+}
-\ No newline at end of file
-diff -urN --no-dereference mlibc/sysdeps/nomos/generic/mount.cpp mlibc-nomos/sysdeps/nomos/generic/mount.cpp
---- mlibc/sysdeps/nomos/generic/mount.cpp	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/generic/mount.cpp	2025-12-30 01:25:57.282601987 +1300
-@@ -0,0 +1,20 @@
-+#include <errno.h>
-+#include <sys/mount.h>
-+#include <sys/types.h>
-+#include <nomos/syscall.h>
 +
-+int sys_mount(const char *__source, const char *__target, const char *__filesystemtype, unsigned long __mountflags, const void *__data) {
-+    ssize_t ret = syscall(SYSCALL_MOUNT, (uint64_t)__source, (uint64_t)__target, (uint64_t)__filesystemtype, __mountflags, (uint64_t)__data);
-+    if (ret < 0) {
-+        return -ret;
++    int sys_getrusage(int scope, struct rusage *usage) {
++        ssize_t ret = syscall(SYSCALL_GETRUSAGE, scope, (uint64_t)usage);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
 +    }
-+    return 0;
-+}
 +
-+int sys_umount2(const char *__target, int __flags) {
-+    ssize_t ret = syscall(SYSCALL_UMOUNT, (uint64_t)__target, __flags);
-+    if (ret < 0) {
-+        return -ret;
++    int sys_mount(const char *__source, const char *__target, const char *__filesystemtype, unsigned long __mountflags, const void *__data) {
++        ssize_t ret = syscall(SYSCALL_MOUNT, (uint64_t)__source, (uint64_t)__target, (uint64_t)__filesystemtype, __mountflags, (uint64_t)__data);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
 +    }
-+    return 0;
-+}
-\ No newline at end of file
-diff -urN --no-dereference mlibc/sysdeps/nomos/generic/reboot.cpp mlibc-nomos/sysdeps/nomos/generic/reboot.cpp
---- mlibc/sysdeps/nomos/generic/reboot.cpp	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/generic/reboot.cpp	2025-12-30 01:27:32.016203828 +1300
-@@ -0,0 +1,7 @@
-+#include <errno.h>
-+#include <sys/reboot.h>
-+#include <nomos/syscall.h>
 +
-+int sys_reboot(int arg) {
-+    return ENOSYS;
++    int sys_umount2(const char *__target, int __flags) {
++        ssize_t ret = syscall(SYSCALL_UMOUNT, (uint64_t)__target, __flags);
++        if (ret < 0) {
++            return -ret;
++        }
++        return 0;
++    }
++
++    int sys_reboot(int arg) {
++        return ENOSYS;
++    }
 +}
 \ No newline at end of file
 diff -urN --no-dereference mlibc/sysdeps/nomos/generic/thread.S mlibc-nomos/sysdeps/nomos/generic/thread.S
@@ -4815,8 +4806,8 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/include/linux/fb.h mlibc-nomos/sy
 \ No newline at end of file
 diff -urN --no-dereference mlibc/sysdeps/nomos/include/nomos/syscall.h mlibc-nomos/sysdeps/nomos/include/nomos/syscall.h
 --- mlibc/sysdeps/nomos/include/nomos/syscall.h	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/include/nomos/syscall.h	2025-12-29 19:25:57.884550055 +1300
-@@ -0,0 +1,101 @@
++++ mlibc-nomos/sysdeps/nomos/include/nomos/syscall.h	2026-01-22 16:40:51.709383858 +1300
+@@ -0,0 +1,102 @@
 +#ifndef _NOMOS__SYSCALL_H_
 +#define _NOMOS__SYSCALL_H_
 +
@@ -4892,6 +4883,7 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/include/nomos/syscall.h mlibc-nom
 +#define SYSCALL_GETRANDOM   66
 +#define SYSCALL_CHROOT      67
 +#define SYSCALL_PIVOTROOT   68
++#define SYSCALL_GETRUSAGE   69
 +
 +#ifndef __MLIBC_ABI_ONLY
 +
@@ -5009,8 +5001,8 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/include/sys/sysmacros.h mlibc-nom
 \ No newline at end of file
 diff -urN --no-dereference mlibc/sysdeps/nomos/meson.build mlibc-nomos/sysdeps/nomos/meson.build
 --- mlibc/sysdeps/nomos/meson.build	1970-01-01 12:00:00.000000000 +1200
-+++ mlibc-nomos/sysdeps/nomos/meson.build	2025-12-30 01:26:15.549912219 +1300
-@@ -0,0 +1,139 @@
++++ mlibc-nomos/sysdeps/nomos/meson.build	2026-01-21 19:18:56.684975377 +1300
+@@ -0,0 +1,137 @@
 +sysdep_supported_options = {
 +  'posix': true,
 +  'linux': true,
@@ -5025,9 +5017,7 @@ diff -urN --no-dereference mlibc/sysdeps/nomos/meson.build mlibc-nomos/sysdeps/n
 +libc_sources += files(
 +  'generic/entry.cpp',
 +  'generic/generic.cpp',
-+  'generic/mount.cpp',
-+  'generic/thread.S',
-+  'generic/reboot.cpp'
++  'generic/thread.S'
 +)
 +
 +if not no_headers

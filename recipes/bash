@@ -37,6 +37,9 @@ package() {
     make install DESTDIR="${dest_dir}"
     ln -s bash "${dest_dir}${prefix}"/bin/sh
     ln -s bash "${dest_dir}${prefix}"/bin/rbash
+    mkdir -p "${dest_dir}"/bin
+    ln -s ../usr/bin/bash "${dest_dir}"/bin/sh
+    ln -s ../usr/bin/bash "${dest_dir}"/bin/rbash
 
     mkdir -p "${dest_dir}"/etc
     cp -v "${base_dir}"/build-support/extra-files/bash/bash.bashrc "${dest_dir}"/etc/bash.bashrc
