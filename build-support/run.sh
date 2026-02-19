@@ -4,7 +4,7 @@ if [ -z "$ARCH" ]; then
     ARCH=x86_64
 fi
 
-INT_FLAGS="-m 4G"
+INT_FLAGS="-m 2G"
 INT_FLAGS=${INT_FLAGS} ${QEMU_FLAGS}
 qemu_flags=${INT_FLAGS}
 
@@ -20,5 +20,11 @@ if ! [ -z "$DEBUG" ]; then
     kitty -e gdb sysroot/usr/share/nomos/nomos -ex 'target remote :1234' -x '../build-support/gdbinit' &
 fi
 
+
+if ! [ -z "$ISO" ]; then
+    echo "Booting ISO image..."
+    qemu-system-${ARCH} -M q35 -cpu max ${qemu_flags} -cdrom kairos.iso -no-reboot -debugcon stdio -boot menu=on -bios /usr/share/ovmf/OVMF_CODE.fd -bios /usr/share/ovmf/x64/OVMF.4m.fd
+    exit 0
+fi
 
 qemu-system-${ARCH} -M q35 -cpu max ${qemu_flags} -drive file=kairos.img,if=none,id=nvm -device nvme,serial=deadbeef,drive=nvm -no-reboot -debugcon stdio -boot menu=on -bios /usr/share/ovmf/OVMF_CODE.fd -bios /usr/share/ovmf/x64/OVMF.4m.fd

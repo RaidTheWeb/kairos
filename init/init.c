@@ -34,11 +34,6 @@ int main(int argc, const char **argv) {
     dup2(console, STDOUT_FILENO);
     dup2(console, STDERR_FILENO);
 
-    if (ioctl(STDIN_FILENO, TIOCSCTTY, 1) == -1) { // Set controlling terminal.
-        perror("ioctl TIOCSCTTY");
-        return 1;
-    }
-
     pid_t pgid = getpgid(0);
     if (tcsetpgrp(STDIN_FILENO, pgid) == -1) { // Give terminal control to shell process group.
         perror("tcsetpgrp");
